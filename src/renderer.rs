@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use indexmap::IndexMap;
 use wgpu::util::DeviceExt;
 
 use crate::camera;
@@ -50,10 +50,10 @@ pub struct Renderer {
 
     // Textures stored by name
     texture_bind_group_layout: wgpu::BindGroupLayout,
-    textures: HashMap<String, StoredTexture>,
+    textures: IndexMap<String, StoredTexture>,
 
     // Per-frame sprite batch, grouped by texture
-    batches: HashMap<String, Vec<Vertex>>,
+    batches: IndexMap<String, Vec<Vertex>>,
 }
 
 struct StoredTexture {
@@ -63,7 +63,11 @@ struct StoredTexture {
 }
 
 impl Renderer {
-    pub fn new(device: &wgpu::Device, surface_format: wgpu::TextureFormat, logical_height: f32) -> Self {
+    pub fn new(
+        device: &wgpu::Device,
+        surface_format: wgpu::TextureFormat,
+        logical_height: f32,
+    ) -> Self {
         // Texture bind group layout
         let texture_bind_group_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -94,8 +98,11 @@ impl Renderer {
         camera_uniform.update(&camera);
 
         let camera_bind_group_layout = camera::create_bind_group_layout(device);
-        let (camera_buffer, camera_bind_group) =
-            camera::create_buffer_and_bind_group(device, &camera_bind_group_layout, &camera_uniform);
+        let (camera_buffer, camera_bind_group) = camera::create_buffer_and_bind_group(
+            device,
+            &camera_bind_group_layout,
+            &camera_uniform,
+        );
 
         // Shader
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -181,8 +188,8 @@ impl Renderer {
             camera_buffer,
             camera_bind_group,
             texture_bind_group_layout,
-            textures: HashMap::new(),
-            batches: HashMap::new(),
+            textures: IndexMap::new(),
+            batches: IndexMap::new(),
         }
     }
 
@@ -221,10 +228,62 @@ impl Renderer {
     pub fn draw_sprite(&mut self, texture_name: &str, x: f32, y: f32, w: f32, h: f32) {
         let batch = self.batches.entry(texture_name.to_string()).or_default();
         batch.extend_from_slice(&[
-            Vertex { position: [x,     y,     0.0], tex_coords: [0.0, 0.0] },
-            Vertex { position: [x + w, y,     0.0], tex_coords: [1.0, 0.0] },
-            Vertex { position: [x + w, y + h, 0.0], tex_coords: [1.0, 1.0] },
-            Vertex { position: [x,     y + h, 0.0], tex_coords: [0.0, 1.0] },
+            Vertex {
+                position: [x, y, 0.0],
+                tex_coords: [0.0, 0.0],
+            },
+            Vertex {
+                position: [x + w, y, 0.0],
+                tex_coords: [1.0, 0.0],
+            },
+            Vertex {
+                position: [x + w, y + h, 0.0],
+                tex_coords: [1.0, 1.0],
+            },
+            Vertex {
+                position: [x, y + h, 0.0],
+                tex_coords: [0.0, 1.0],
+            },
+        ]);
+    }
+
+    pub fn draw_sprite_frame(
+        &mut self,
+        texture_name: &str,
+        x: f32,
+        y: f32,
+        draw_w: f32,
+        draw_h: f32,
+        frame_col: usize,
+        frame_row: usize,
+        frame_w: f32,
+        frame_h: f32,
+        texture_w: f32,
+        texture_h: f32,
+    ) {
+        let u0 = (frame_col as f32 * frame_w) / texture_w;
+        let u1 = u0 + frame_w / texture_w;
+        let v0 = (frame_row as f32 * frame_h) / texture_h;
+        let v1 = v0 + frame_h / texture_h;
+
+        let batch = self.batches.entry(texture_name.to_string()).or_default();
+        batch.extend_from_slice(&[
+            Vertex {
+                position: [x, y, 0.0],
+                tex_coords: [u0, v0],
+            },
+            Vertex {
+                position: [x + draw_w, y, 0.0],
+                tex_coords: [u1, v0],
+            },
+            Vertex {
+                position: [x + draw_w, y + draw_h, 0.0],
+                tex_coords: [u1, v1],
+            },
+            Vertex {
+                position: [x, y + draw_h, 0.0],
+                tex_coords: [u0, v1],
+            },
         ]);
     }
 
@@ -233,10 +292,7 @@ impl Renderer {
     }
 
     /// Upload camera, flush all sprite batches, present.
-    pub fn render(
-        &mut self,
-        engine: &crate::engine::Engine,
-    ) -> anyhow::Result<()> {
+    pub fn render(&mut self, engine: &crate::engine::Engine) -> anyhow::Result<()> {
         if !engine.is_surface_configured {
             return Ok(());
         }
@@ -304,7 +360,7 @@ impl Renderer {
             let mut all_vertices: Vec<Vertex> = Vec::new();
             let mut draw_calls: Vec<(String, u32, u32)> = Vec::new();
 
-            for (tex_name, vertices) in self.batches.drain() {
+            for (tex_name, vertices) in self.batches.drain(..) {
                 let num_sprites = vertices.len() / 4;
                 if num_sprites == 0 {
                     continue;

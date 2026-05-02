@@ -15,9 +15,12 @@ use wasm_bindgen::prelude::*;
 #[cfg(target_arch = "wasm32")]
 use winit::platform::web::EventLoopExtWebSys;
 
+mod animation;
 mod camera;
 mod engine;
 mod game;
+mod player;
+mod tile;
 mod input;
 mod renderer;
 mod texture;
@@ -149,6 +152,7 @@ impl ApplicationHandler<Initialized> for App {
             WindowEvent::Resized(size) => {
                 engine.resize(size.width, size.height);
                 renderer.resize(size.width as f32, size.height as f32);
+                game.on_resize(size.width as f32, size.height as f32);
             }
 
             WindowEvent::RedrawRequested => {

@@ -1,6 +1,8 @@
 use anyhow::*;
 use image::GenericImageView;
 
+use crate::{engine::Engine, renderer::Renderer};
+
 pub struct Texture {
     #[allow(unused)]
     pub texture: wgpu::Texture,
@@ -66,7 +68,7 @@ impl Texture {
             address_mode_u: wgpu::AddressMode::ClampToEdge,
             address_mode_v: wgpu::AddressMode::ClampToEdge,
             address_mode_w: wgpu::AddressMode::ClampToEdge,
-            mag_filter: wgpu::FilterMode::Linear,
+            mag_filter: wgpu::FilterMode::Nearest,
             min_filter: wgpu::FilterMode::Nearest,
             mipmap_filter: wgpu::MipmapFilterMode::Nearest,
             ..Default::default()
@@ -78,4 +80,21 @@ impl Texture {
             sampler,
         })
     }
+}
+
+/// Helper function to load sprites
+pub fn load_sprites(engine: &Engine, renderer: &mut Renderer) {
+    renderer.load_texture(
+        &engine.device,
+        &engine.queue,
+        "grass",
+        include_bytes!("../assets/grass.png"),
+    );
+
+    renderer.load_texture(
+        &engine.device,
+        &engine.queue,
+        "player",
+        include_bytes!("../assets/player.png"),
+    );
 }
