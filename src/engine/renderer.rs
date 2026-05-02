@@ -1,4 +1,4 @@
-use indexmap::IndexMap;
+use std::collections::HashMap;
 use wgpu::util::DeviceExt;
 
 use crate::engine::camera;
@@ -50,10 +50,10 @@ pub struct Renderer {
 
     // Textures stored by name
     texture_bind_group_layout: wgpu::BindGroupLayout,
-    textures: IndexMap<String, StoredTexture>,
+    textures: HashMap<String, StoredTexture>,
 
     // Per-frame sprite batch, grouped by texture
-    batches: IndexMap<String, Vec<Vertex>>,
+    batches: HashMap<String, Vec<Vertex>>,
 }
 
 struct StoredTexture {
@@ -188,8 +188,8 @@ impl Renderer {
             camera_buffer,
             camera_bind_group,
             texture_bind_group_layout,
-            textures: IndexMap::new(),
-            batches: IndexMap::new(),
+            textures: HashMap::new(),
+            batches: HashMap::new(),
         }
     }
 
@@ -360,7 +360,7 @@ impl Renderer {
             let mut all_vertices: Vec<Vertex> = Vec::new();
             let mut draw_calls: Vec<(String, u32, u32)> = Vec::new();
 
-            for (tex_name, vertices) in self.batches.drain(..) {
+            for (tex_name, vertices) in self.batches.drain() {
                 let num_sprites = vertices.len() / 4;
                 if num_sprites == 0 {
                     continue;
@@ -380,7 +380,6 @@ impl Renderer {
 
             render_pass.set_pipeline(&self.pipeline);
             render_pass.set_bind_group(0, &self.camera_bind_group, &[]);
-            render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
             render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
 
             for (tex_name, base_vertex, num_sprites) in &draw_calls {
@@ -388,8 +387,11 @@ impl Renderer {
                     Some(s) => s,
                     None => continue,
                 };
+                let byte_offset =
+                    *base_vertex as u64 * std::mem::size_of::<Vertex>() as u64;
+                render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(byte_offset..));
                 render_pass.set_bind_group(1, &stored.bind_group, &[]);
-                render_pass.draw_indexed(0..(num_sprites * 6), *base_vertex as i32, 0..1);
+                render_pass.draw_indexed(0..(num_sprites * 6), 0, 0..1);
             }
         }
 
