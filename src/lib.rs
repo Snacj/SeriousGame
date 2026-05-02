@@ -15,20 +15,13 @@ use wasm_bindgen::prelude::*;
 #[cfg(target_arch = "wasm32")]
 use winit::platform::web::EventLoopExtWebSys;
 
-mod animation;
-mod camera;
 mod engine;
 mod game;
-mod player;
-mod tile;
-mod input;
-mod renderer;
-mod texture;
 
-use engine::Engine;
-use game::{Game, MyGame};
-use input::Input;
-use renderer::Renderer;
+use engine::engine::Engine;
+use engine::input::Input;
+use engine::renderer::Renderer;
+use game::{game::Game, game::MyGame};
 
 /// Everything that needs async init gets sent through this on wasm.
 struct Initialized {
@@ -104,21 +97,24 @@ impl ApplicationHandler<Initialized> for App {
         {
             if let Some(proxy) = self.proxy.take() {
                 wasm_bindgen_futures::spawn_local(async move {
-                    let mut engine = Engine::new(window)
-                        .await
-                        .expect("Unable to create engine");
+                    let mut engine = Engine::new(window).await.expect("Unable to create engine");
                     engine.resize(engine.config.width, engine.config.height);
 
-                    let mut renderer =
-                        Renderer::new(&engine.device, engine.config.format, 180.0);
+                    let mut renderer = Renderer::new(&engine.device, engine.config.format, 180.0);
                     let (sw, sh) = engine.screen_size();
                     renderer.resize(sw, sh);
 
                     let game = MyGame::init(&engine, &mut renderer);
 
-                    assert!(proxy
-                        .send_event(Initialized { engine, renderer, game })
-                        .is_ok());
+                    assert!(
+                        proxy
+                            .send_event(Initialized {
+                                engine,
+                                renderer,
+                                game
+                            })
+                            .is_ok()
+                    );
                 });
             }
         }
@@ -163,10 +159,11 @@ impl ApplicationHandler<Initialized> for App {
                 let frame_time = frame_time.min(0.1);
 
                 const FIXED_DT: f32 = 1.0 / 60.0;
-                self. accumulator += frame_time;
+                self.accumulator += frame_time;
 
                 while self.accumulator >= FIXED_DT {
                     game.update(&self.input, FIXED_DT);
+                    self.input.begin_frame();
                     self.accumulator -= FIXED_DT;
                 }
                 game.render(renderer);
@@ -179,7 +176,6 @@ impl ApplicationHandler<Initialized> for App {
                     }
                 }
 
-                self.input.begin_frame();
                 engine.window.request_redraw();
             }
 
@@ -207,7 +203,7 @@ impl ApplicationHandler<Initialized> for App {
 pub fn run() -> anyhow::Result<()> {
     #[cfg(not(target_arch = "wasm32"))]
     {
-        env_logger::init();
+        env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
     }
     #[cfg(target_arch = "wasm32")]
     {

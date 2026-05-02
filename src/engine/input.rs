@@ -41,12 +41,12 @@ impl Input {
     }
 
     /// True only on the first frame the key goes down.
-    pub fn just_pressed(&self, key: KeyCode) -> bool {
+    pub fn is_just_pressed(&self, key: KeyCode) -> bool {
         self.just_pressed.contains(&key)
     }
 
     /// True only on the frame the key is released.
-    pub fn just_released(&self, key: KeyCode) -> bool {
+    pub fn is_just_released(&self, key: KeyCode) -> bool {
         self.just_released.contains(&key)
     }
 }

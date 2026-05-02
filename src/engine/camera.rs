@@ -45,14 +45,7 @@ impl Camera {
     pub fn build_projection_view_matrix(&self) -> cgmath::Matrix4<f32> {
         // Orthographic projection: maps the logical viewport to clip space.
         // top-left origin, Y-down.
-        let proj = cgmath::ortho(
-            0.0,
-            self.logical_width,
-            self.logical_height,
-            0.0,
-            -1.0,
-            1.0,
-        );
+        let proj = cgmath::ortho(0.0, self.logical_width, self.logical_height, 0.0, -1.0, 1.0);
 
         // View matrix: translate so camera.position is the origin.
         let view = cgmath::Matrix4::from_translation(cgmath::vec3(

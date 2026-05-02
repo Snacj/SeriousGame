@@ -1,17 +1,18 @@
+use log;
 use winit::keyboard::KeyCode;
 
 use crate::{
-    animation::{Animation, AnimationSet},
-    game::TILE_SIZE,
-    input::Input,
-    renderer::Renderer,
+    engine::animation::{Animation, AnimationSet},
+    engine::input::Input,
+    engine::renderer::Renderer,
+    game::game::TILE_SIZE,
 };
 
 const ATLAS_TEXTURE: &str = "player";
 const FRAME_W: f32 = 16.0;
-const FRAME_H: f32 = 16.0;
-const ATLAS_W: f32 = 64.0;
-const ATLAS_H: f32 = 128.0;
+const FRAME_H: f32 = 32.0;
+const ATLAS_W: f32 = 80.0;
+const ATLAS_H: f32 = 256.0;
 
 pub struct Player {
     pub x: f32,
@@ -25,14 +26,14 @@ pub struct Player {
 impl Player {
     pub fn new() -> Self {
         let animations = AnimationSet::new()
-            .add("walk_down",   Animation::new(2, 0.4, 0))
-            .add("walk_left",   Animation::new(3, 0.4, 1))
-            .add("walk_right",  Animation::new(3, 0.4, 2))
-            .add("walk_up",     Animation::new(2, 0.4, 3))
-            .add("idle_down",   Animation::new(2, 0.8, 4))
-            .add("idle_left",   Animation::new(2, 0.8, 5))
-            .add("idle_right",  Animation::new(2, 0.8, 6))
-            .add("idle_up",     Animation::new(2, 0.8, 7));
+            .add("walk_down", Animation::new(5, 0.5, 0))
+            .add("walk_up", Animation::new(5, 0.5, 1))
+            .add("walk_right", Animation::new(4, 0.5, 2))
+            .add("walk_left", Animation::new(4, 0.5, 3))
+            .add("idle_down", Animation::new(4, 0.8, 4))
+            .add("idle_up", Animation::new(3, 0.8, 5))
+            .add("idle_right", Animation::new(5, 0.8, 6))
+            .add("idle_left", Animation::new(5, 0.8, 7));
         Self {
             x: 16.0 * TILE_SIZE,
             y: 16.0 * TILE_SIZE,
@@ -43,25 +44,14 @@ impl Player {
         }
     }
 
-    pub fn update(&mut self, input: &Input, dt: f32) {
-        self.update_position(input, dt);
-
-        self.update_animation();
-        self.animations.step(dt);
-
-        if input.just_released(KeyCode::Enter) {
-            self.interact();
-        }
-    }
-
     pub fn render(&self, renderer: &mut Renderer) {
         let (row, col) = self.animations.current_frame();
         renderer.draw_sprite_frame(
             ATLAS_TEXTURE,
             self.x,
-            self.y,
+            self.y - TILE_SIZE,
             TILE_SIZE,
-            TILE_SIZE,
+            TILE_SIZE * 2.0,
             col,
             row,
             FRAME_W,
@@ -69,6 +59,17 @@ impl Player {
             ATLAS_W,
             ATLAS_H,
         );
+    }
+
+    pub fn update(&mut self, input: &Input, dt: f32) {
+        self.update_position(input, dt);
+
+        self.update_animation();
+        self.animations.step(dt);
+
+        if input.is_just_released(KeyCode::Enter) || input.is_just_pressed(KeyCode::Space) {
+            self.interact();
+        }
     }
 
     fn update_position(&mut self, input: &Input, dt: f32) {
@@ -140,7 +141,7 @@ impl Player {
     fn interact(&self) {
         let tile_x = (self.x / TILE_SIZE) as usize;
         let tile_y = (self.y / TILE_SIZE) as usize;
-        tracing::info!("Interacting with tile ({}, {})", tile_x, tile_y);
+        log::info!("Interacting with tile ({}, {})", tile_x, tile_y);
     }
 }
 

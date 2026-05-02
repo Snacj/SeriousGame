@@ -1,6 +1,4 @@
-// tile.rs
-
-use crate::game::TILE_SIZE;
+use crate::game::game::TILE_SIZE;
 
 #[derive(Copy, Clone)]
 pub struct Tile {

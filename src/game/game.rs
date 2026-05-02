@@ -1,10 +1,11 @@
-use crate::camera::Camera;
-use crate::engine::Engine;
-use crate::input::Input;
-use crate::player::Player;
-use crate::renderer::Renderer;
-use crate::texture::load_sprites;
-use crate::tile::{Tile, TileType};
+use crate::engine::camera::Camera;
+use crate::engine::engine::Engine;
+use crate::engine::input::Input;
+use crate::engine::renderer::Renderer;
+use crate::engine::texture::load_sprites;
+use crate::game::object::{Object, ObjectType};
+use crate::game::player::Player;
+use crate::game::tile::{Tile, TileType};
 
 pub trait Game: Sized {
     fn init(engine: &Engine, renderer: &mut Renderer) -> Self;
@@ -28,11 +29,7 @@ impl MyGame {
 
         for (y, row) in map.iter_mut().enumerate() {
             for (x, tile) in row.iter_mut().enumerate() {
-                *tile = Tile::new(
-                    x as f32 * TILE_SIZE,
-                    y as f32 * TILE_SIZE,
-                    TileType::Grass,
-                );
+                *tile = Tile::new(x as f32 * TILE_SIZE, y as f32 * TILE_SIZE, TileType::Grass);
             }
         }
 

@@ -1,8 +1,8 @@
 use indexmap::IndexMap;
 use wgpu::util::DeviceExt;
 
-use crate::camera;
-use crate::texture;
+use crate::engine::camera;
+use crate::engine::texture;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
@@ -107,7 +107,7 @@ impl Renderer {
         // Shader
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Shader"),
-            source: wgpu::ShaderSource::Wgsl(include_str!("shader.wgsl").into()),
+            source: wgpu::ShaderSource::Wgsl(include_str!("../../shader/shader.wgsl").into()),
         });
 
         // Pipeline
@@ -292,7 +292,7 @@ impl Renderer {
     }
 
     /// Upload camera, flush all sprite batches, present.
-    pub fn render(&mut self, engine: &crate::engine::Engine) -> anyhow::Result<()> {
+    pub fn render(&mut self, engine: &crate::engine::engine::Engine) -> anyhow::Result<()> {
         if !engine.is_surface_configured {
             return Ok(());
         }

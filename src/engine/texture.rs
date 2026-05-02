@@ -1,7 +1,7 @@
 use anyhow::*;
 use image::GenericImageView;
 
-use crate::{engine::Engine, renderer::Renderer};
+use crate::engine::{engine::Engine, renderer::Renderer};
 
 pub struct Texture {
     #[allow(unused)]
@@ -88,13 +88,13 @@ pub fn load_sprites(engine: &Engine, renderer: &mut Renderer) {
         &engine.device,
         &engine.queue,
         "grass",
-        include_bytes!("../assets/grass.png"),
+        include_bytes!("../../assets/grass.png"),
     );
 
     renderer.load_texture(
         &engine.device,
         &engine.queue,
         "player",
-        include_bytes!("../assets/player.png"),
+        include_bytes!("../../assets/player2.png"),
     );
 }
