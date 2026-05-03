@@ -97,4 +97,25 @@ pub fn load_sprites(engine: &Engine, renderer: &mut Renderer) {
         "player",
         include_bytes!("../../assets/player2.png"),
     );
+
+    renderer.load_texture(
+        &engine.device,
+        &engine.queue,
+        "house",
+        include_bytes!("../../assets/house.png"),
+    );
+
+    renderer.load_texture(
+        &engine.device,
+        &engine.queue,
+        "font",
+        include_bytes!("../../assets/font.png"),
+    );
+
+    renderer.create_solid_texture(
+        &engine.device,
+        &engine.queue,
+        "debug_red",
+        [255, 0, 0, 100],
+    );
 }

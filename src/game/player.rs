@@ -1,10 +1,12 @@
-use log;
 use winit::keyboard::KeyCode;
 
 use crate::{
-    engine::animation::{Animation, AnimationSet},
-    engine::input::Input,
-    engine::renderer::Renderer,
+    engine::{
+        animation::{Animation, AnimationSet},
+        collision::CollisionBox,
+        input::Input,
+        renderer::Renderer,
+    },
     game::game::TILE_SIZE,
 };
 
@@ -18,6 +20,7 @@ pub struct Player {
     pub x: f32,
     pub y: f32,
     pub speed: f32,
+    pub collision_box: CollisionBox,
     idle: bool,
     animation_state: PlayerAnimationState,
     animations: AnimationSet,
@@ -34,19 +37,26 @@ impl Player {
             .add("idle_up", Animation::new(3, 0.8, 5))
             .add("idle_right", Animation::new(5, 0.8, 6))
             .add("idle_left", Animation::new(5, 0.8, 7));
+
+        let collision_box = CollisionBox::new(4.0, 12.0, 8.0, 4.0);
+
         Self {
             x: 16.0 * TILE_SIZE,
             y: 16.0 * TILE_SIZE,
             speed: 80.0,
+            collision_box,
             idle: true,
             animation_state: PlayerAnimationState::Down,
             animations,
         }
     }
 
-    pub fn render(&self, renderer: &mut Renderer) {
+    /// Render with a unique batch key so Y-sorting works correctly.
+    pub fn render_ordered(&self, renderer: &mut Renderer, order: usize, debug: bool) {
         let (row, col) = self.animations.current_frame();
-        renderer.draw_sprite_frame(
+        let key = format!("{}_{}", ATLAS_TEXTURE, order);
+        renderer.draw_sprite_frame_keyed(
+            &key,
             ATLAS_TEXTURE,
             self.x,
             self.y - TILE_SIZE,
@@ -59,6 +69,19 @@ impl Player {
             ATLAS_W,
             ATLAS_H,
         );
+
+        if debug {
+            let cb = &self.collision_box;
+            let debug_key = format!("debug_player_{}", order);
+            renderer.draw_sprite_keyed(
+                &debug_key,
+                "debug_red",
+                self.x + cb.offset_x,
+                self.y + cb.offset_y,
+                cb.width,
+                cb.height,
+            );
+        }
     }
 
     pub fn update(&mut self, input: &Input, dt: f32) {
@@ -116,8 +139,11 @@ impl Player {
             self.idle = true;
         }
 
-        self.x += dx * speed;
-        self.y += dy * speed;
+        let next_x = dx * speed;
+        let next_y = dy * speed;
+
+        self.x += next_x;
+        self.y += next_y;
     }
 
     fn update_animation(&mut self) {

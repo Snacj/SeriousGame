@@ -28,7 +28,7 @@ impl Tile {
 #[derive(Copy, Clone, PartialEq)]
 pub enum TileType {
     Grass,
-    Water,
+    Tree,
     Stone,
 }
 
@@ -36,8 +36,16 @@ impl TileType {
     pub fn sprite_name(&self) -> &'static str {
         match self {
             TileType::Grass => "grass",
-            TileType::Water => "water",
+            TileType::Tree => "tree",
             TileType::Stone => "stone",
         }
+    }
+
+    pub fn is_ground(&self) -> bool {
+        matches!(self, TileType::Grass)
+    }
+
+    pub fn is_solid(&self) -> bool {
+        matches!(self, TileType::Tree | TileType::Stone)
     }
 }

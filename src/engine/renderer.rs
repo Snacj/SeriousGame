@@ -1,3 +1,4 @@
+use indexmap::IndexMap;
 use std::collections::HashMap;
 use wgpu::util::DeviceExt;
 
@@ -52,8 +53,9 @@ pub struct Renderer {
     texture_bind_group_layout: wgpu::BindGroupLayout,
     textures: HashMap<String, StoredTexture>,
 
-    // Per-frame sprite batch, grouped by texture
-    batches: HashMap<String, Vec<Vertex>>,
+    // Per-frame sprite batch — IndexMap preserves insertion order = Y-sort order
+    batches: IndexMap<String, Vec<Vertex>>,
+    batch_texture_map: HashMap<String, String>,
 }
 
 struct StoredTexture {
@@ -189,7 +191,8 @@ impl Renderer {
             camera_bind_group,
             texture_bind_group_layout,
             textures: HashMap::new(),
-            batches: HashMap::new(),
+            batches: IndexMap::new(),
+            batch_texture_map: HashMap::new(),
         }
     }
 
@@ -287,6 +290,145 @@ impl Renderer {
         ]);
     }
 
+    /// Like draw_sprite but with a unique batch key prevents same-texture
+    /// sprites from merging batches, preserving Y-sort draw order.
+    pub fn draw_sprite_keyed(
+        &mut self,
+        batch_key: &str,
+        texture_name: &str,
+        x: f32,
+        y: f32,
+        w: f32,
+        h: f32,
+    ) {
+        self.batch_texture_map
+            .insert(batch_key.to_string(), texture_name.to_string());
+        let batch = self.batches.entry(batch_key.to_string()).or_default();
+        batch.extend_from_slice(&[
+            Vertex {
+                position: [x, y, 0.0],
+                tex_coords: [0.0, 0.0],
+            },
+            Vertex {
+                position: [x + w, y, 0.0],
+                tex_coords: [1.0, 0.0],
+            },
+            Vertex {
+                position: [x + w, y + h, 0.0],
+                tex_coords: [1.0, 1.0],
+            },
+            Vertex {
+                position: [x, y + h, 0.0],
+                tex_coords: [0.0, 1.0],
+            },
+        ]);
+    }
+
+    /// Like draw_sprite_frame but with a unique batch key.
+    pub fn draw_sprite_frame_keyed(
+        &mut self,
+        batch_key: &str,
+        texture_name: &str,
+        x: f32,
+        y: f32,
+        draw_w: f32,
+        draw_h: f32,
+        frame_col: usize,
+        frame_row: usize,
+        frame_w: f32,
+        frame_h: f32,
+        texture_w: f32,
+        texture_h: f32,
+    ) {
+        self.batch_texture_map
+            .insert(batch_key.to_string(), texture_name.to_string());
+        let u0 = (frame_col as f32 * frame_w) / texture_w;
+        let u1 = u0 + frame_w / texture_w;
+        let v0 = (frame_row as f32 * frame_h) / texture_h;
+        let v1 = v0 + frame_h / texture_h;
+        let batch = self.batches.entry(batch_key.to_string()).or_default();
+        batch.extend_from_slice(&[
+            Vertex {
+                position: [x, y, 0.0],
+                tex_coords: [u0, v0],
+            },
+            Vertex {
+                position: [x + draw_w, y, 0.0],
+                tex_coords: [u1, v0],
+            },
+            Vertex {
+                position: [x + draw_w, y + draw_h, 0.0],
+                tex_coords: [u1, v1],
+            },
+            Vertex {
+                position: [x, y + draw_h, 0.0],
+                tex_coords: [u0, v1],
+            },
+        ]);
+    }
+
+    /// Creates a 1×1 solid color texture. Use for debug shapes
+    pub fn create_solid_texture(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        name: &str,
+        color: [u8; 4],
+    ) {
+        use wgpu::util::DeviceExt;
+        let size = wgpu::Extent3d {
+            width: 1,
+            height: 1,
+            depth_or_array_layers: 1,
+        };
+        let texture = device.create_texture_with_data(
+            queue,
+            &wgpu::TextureDescriptor {
+                label: Some(name),
+                size,
+                mip_level_count: 1,
+                sample_count: 1,
+                dimension: wgpu::TextureDimension::D2,
+                format: wgpu::TextureFormat::Rgba8UnormSrgb,
+                usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+                view_formats: &[],
+            },
+            wgpu::util::TextureDataOrder::LayerMajor,
+            &color,
+        );
+        let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+        let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+            mag_filter: wgpu::FilterMode::Nearest,
+            min_filter: wgpu::FilterMode::Nearest,
+            ..Default::default()
+        });
+        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: &self.texture_bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::TextureView(&view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::Sampler(&sampler),
+                },
+            ],
+            label: Some(&format!("{name}_bind_group")),
+        });
+        self.textures.insert(
+            name.to_string(),
+            StoredTexture {
+                texture: crate::engine::texture::Texture {
+                    texture,
+                    view,
+                    sampler,
+                },
+                bind_group,
+            },
+        );
+    }
+
     pub fn resize(&mut self, screen_width: f32, screen_height: f32) {
         self.camera.update_aspect_ratio(screen_width, screen_height);
     }
@@ -360,7 +502,7 @@ impl Renderer {
             let mut all_vertices: Vec<Vertex> = Vec::new();
             let mut draw_calls: Vec<(String, u32, u32)> = Vec::new();
 
-            for (tex_name, vertices) in self.batches.drain() {
+            for (tex_name, vertices) in self.batches.drain(..) {
                 let num_sprites = vertices.len() / 4;
                 if num_sprites == 0 {
                     continue;
@@ -380,19 +522,25 @@ impl Renderer {
 
             render_pass.set_pipeline(&self.pipeline);
             render_pass.set_bind_group(0, &self.camera_bind_group, &[]);
-            render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-
-            for (tex_name, base_vertex, num_sprites) in &draw_calls {
-                let stored = match self.textures.get(tex_name) {
+            for (batch_key, base_vertex, num_sprites) in &draw_calls {
+                let real_tex = self
+                    .batch_texture_map
+                    .get(batch_key)
+                    .cloned()
+                    .unwrap_or_else(|| batch_key.clone());
+                let stored = match self.textures.get(&real_tex) {
                     Some(s) => s,
                     None => continue,
                 };
-                let byte_offset =
-                    *base_vertex as u64 * std::mem::size_of::<Vertex>() as u64;
+                // Use byte offset slice instead of base_vertex (WebGL2 compat)
+                let byte_offset = *base_vertex as u64 * std::mem::size_of::<Vertex>() as u64;
                 render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(byte_offset..));
+                render_pass
+                    .set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
                 render_pass.set_bind_group(1, &stored.bind_group, &[]);
                 render_pass.draw_indexed(0..(num_sprites * 6), 0, 0..1);
             }
+            self.batch_texture_map.clear();
         }
 
         engine.queue.submit(std::iter::once(encoder.finish()));
