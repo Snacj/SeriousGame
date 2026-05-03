@@ -21,13 +21,12 @@ mod game;
 use engine::engine::Engine;
 use engine::input::Input;
 use engine::renderer::Renderer;
-use game::{game::Game, game::MyGame};
+use game::GameState;
 
-/// Everything that needs async init gets sent through this on wasm.
 struct Initialized {
     engine: Engine,
     renderer: Renderer,
-    game: MyGame,
+    state: GameState,
 }
 
 pub struct App {
@@ -35,7 +34,7 @@ pub struct App {
     proxy: Option<winit::event_loop::EventLoopProxy<Initialized>>,
     engine: Option<Engine>,
     renderer: Option<Renderer>,
-    game: Option<MyGame>,
+    state: Option<GameState>,
     input: Input,
     last_frame: Instant,
     accumulator: f32,
@@ -48,7 +47,7 @@ impl App {
         Self {
             engine: None,
             renderer: None,
-            game: None,
+            state: None,
             input: Input::new(),
             last_frame: Instant::now(),
             accumulator: 0.0,
@@ -86,11 +85,11 @@ impl ApplicationHandler<Initialized> for App {
             let (sw, sh) = engine.screen_size();
             renderer.resize(sw, sh);
 
-            let game = MyGame::init(&engine, &mut renderer);
+            let state = GameState::init(&engine, &mut renderer);
 
             self.engine = Some(engine);
             self.renderer = Some(renderer);
-            self.game = Some(game);
+            self.state = Some(state);
         }
 
         #[cfg(target_arch = "wasm32")]
@@ -104,14 +103,14 @@ impl ApplicationHandler<Initialized> for App {
                     let (sw, sh) = engine.screen_size();
                     renderer.resize(sw, sh);
 
-                    let game = MyGame::init(&engine, &mut renderer);
+                    let state = GameState::init(&engine, &mut renderer);
 
                     assert!(
                         proxy
                             .send_event(Initialized {
                                 engine,
                                 renderer,
-                                game
+                                state
                             })
                             .is_ok()
                     );
@@ -127,7 +126,7 @@ impl ApplicationHandler<Initialized> for App {
         }
         self.engine = Some(event.engine);
         self.renderer = Some(event.renderer);
-        self.game = Some(event.game);
+        self.state = Some(event.state);
     }
 
     fn window_event(
@@ -136,8 +135,8 @@ impl ApplicationHandler<Initialized> for App {
         _window_id: winit::window::WindowId,
         event: WindowEvent,
     ) {
-        let (Some(engine), Some(renderer), Some(game)) =
-            (&mut self.engine, &mut self.renderer, &mut self.game)
+        let (Some(engine), Some(renderer), Some(state)) =
+            (&mut self.engine, &mut self.renderer, &mut self.state)
         else {
             return;
         };
@@ -148,25 +147,26 @@ impl ApplicationHandler<Initialized> for App {
             WindowEvent::Resized(size) => {
                 engine.resize(size.width, size.height);
                 renderer.resize(size.width as f32, size.height as f32);
-                game.on_resize(size.width as f32, size.height as f32);
+                state.on_resize(size.width as f32, size.height as f32);
             }
 
             WindowEvent::RedrawRequested => {
                 let now = Instant::now();
-                let frame_time = now.duration_since(self.last_frame).as_secs_f32();
+                let frame_time = now.duration_since(self.last_frame).as_secs_f32().min(0.1);
                 self.last_frame = now;
-
-                let frame_time = frame_time.min(0.1);
 
                 const FIXED_DT: f32 = 1.0 / 60.0;
                 self.accumulator += frame_time;
 
                 while self.accumulator >= FIXED_DT {
-                    game.update(&self.input, FIXED_DT);
+                    if let Some(transition) = state.update(&self.input, FIXED_DT) {
+                        *state = transition;
+                    }
                     self.input.begin_frame();
                     self.accumulator -= FIXED_DT;
                 }
-                game.render(renderer);
+
+                state.render(renderer);
 
                 match renderer.render(engine) {
                     Ok(_) => {}

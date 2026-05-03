@@ -28,15 +28,16 @@ pub struct Player {
 
 impl Player {
     pub fn new() -> Self {
+        #[rustfmt::skip]
         let animations = AnimationSet::new()
-            .add("walk_down", Animation::new(5, 0.5, 0))
-            .add("walk_up", Animation::new(5, 0.5, 1))
-            .add("walk_right", Animation::new(4, 0.5, 2))
-            .add("walk_left", Animation::new(4, 0.5, 3))
-            .add("idle_down", Animation::new(4, 0.8, 4))
-            .add("idle_up", Animation::new(3, 0.8, 5))
-            .add("idle_right", Animation::new(5, 0.8, 6))
-            .add("idle_left", Animation::new(5, 0.8, 7));
+            .add("walk_down",   Animation::new(5, 0.5, 0))
+            .add("walk_up",     Animation::new(5, 0.5, 1))
+            .add("walk_right",  Animation::new(4, 0.5, 2))
+            .add("walk_left",   Animation::new(4, 0.5, 3))
+            .add("idle_down",   Animation::new(4, 1.0, 4))
+            .add("idle_up",     Animation::new(3, 1.0, 5))
+            .add("idle_right",  Animation::new(5, 1.0, 6))
+            .add("idle_left",   Animation::new(5, 1.0, 7));
 
         let collision_box = CollisionBox::new(4.0, 12.0, 8.0, 4.0);
 

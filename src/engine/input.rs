@@ -49,4 +49,8 @@ impl Input {
     pub fn is_just_released(&self, key: KeyCode) -> bool {
         self.just_released.contains(&key)
     }
+
+    pub fn any_held(&self) -> bool {
+        !self.held.is_empty()
+    }
 }

@@ -2,35 +2,24 @@ use winit::keyboard::KeyCode;
 
 use crate::engine::camera::Camera;
 use crate::engine::collision::{CollisionBox, CollisionWorld, Rect};
-use crate::engine::engine::Engine;
 use crate::engine::font::Font;
 use crate::engine::input::Input;
 use crate::engine::renderer::Renderer;
-use crate::engine::texture::load_sprites;
+use crate::game::GameState;
 use crate::game::object::{Object, ObjectType};
 use crate::game::player::Player;
 use crate::game::tile::{Tile, TileType};
-
-pub trait Game: Sized {
-    fn init(engine: &Engine, renderer: &mut Renderer) -> Self;
-    fn update(&mut self, input: &Input, dt: f32);
-    fn render(&self, renderer: &mut Renderer);
-    fn on_resize(&mut self, width: f32, height: f32);
-}
 
 pub const TILE_SIZE: f32 = 16.0;
 pub const MAP_SIZE: usize = 32;
 
 pub struct MyGame {
     pub camera: Camera,
-
     font: Font,
-
     objects: Vec<Object>,
     player: Player,
     map: [[Tile; MAP_SIZE]; MAP_SIZE],
     collision_world: CollisionWorld,
-
     debug: bool,
     fps: u32,
     frame_count: u32,
@@ -38,47 +27,12 @@ pub struct MyGame {
 }
 
 impl MyGame {
-    fn init_map() -> [[Tile; MAP_SIZE]; MAP_SIZE] {
-        let mut map = [[Tile::new(0.0, 0.0, TileType::Grass); MAP_SIZE]; MAP_SIZE];
-
-        for (y, row) in map.iter_mut().enumerate() {
-            for (x, tile) in row.iter_mut().enumerate() {
-                *tile = Tile::new(x as f32 * TILE_SIZE, y as f32 * TILE_SIZE, TileType::Grass);
-            }
-        }
-
-        map
-    }
-
-    pub fn get_tile(&self, x: usize, y: usize) -> &Tile {
-        &self.map[y][x]
-    }
-
-    fn draw_fps(&self, renderer: &mut Renderer) {
-        let text = format!("{} FPS", self.fps);
-        let scale = 0.5;
-        let padding = 2.0;
-        let text_w = self.font.measure(&text, scale);
-        let char_h = 16.0 * scale;
-
-        let x = renderer.camera.position.x + renderer.camera.logical_width - text_w - padding;
-
-        let y = renderer.camera.position.y + padding;
-
-        self.font.draw(renderer, &text, x, y, scale);
-    }
-}
-
-impl Game for MyGame {
-    fn init(engine: &Engine, renderer: &mut Renderer) -> Self {
-        load_sprites(engine, renderer);
-
-        let (sw, sh) = engine.screen_size();
+    pub fn new(screen_width: f32, screen_height: f32) -> Self {
         let mut camera = Camera::new(180.0);
-        camera.update_aspect_ratio(sw, sh);
+        camera.update_aspect_ratio(screen_width, screen_height);
 
-        let mut objects: Vec<Object> = Vec::new();
         let collision_box = CollisionBox::new(8.0, 64.0, 80.0, 64.0);
+        let mut objects: Vec<Object> = Vec::new();
         objects.push(Object::new(
             4.0 * TILE_SIZE,
             4.0 * TILE_SIZE,
@@ -104,10 +58,9 @@ impl Game for MyGame {
             collision_box,
         ));
 
-        let map =  MyGame::init_map();
+        let map = Self::init_map();
         let mut collision_world = CollisionWorld::new();
 
-        // Add solid tiles
         for row in &map {
             for tile in row {
                 if tile.tile_type.is_solid() {
@@ -115,18 +68,18 @@ impl Game for MyGame {
                 }
             }
         }
-
-        // Add objects (their respective collsion box)
         for object in &objects {
             let rect = object.collision_box.world_rect(object.x, object.y);
             collision_world.add(rect);
         }
 
+        let player = Player::new();
+
         Self {
             camera,
             font: Font::new("font"),
             objects,
-            player: Player::new(),
+            player,
             map,
             collision_world,
             debug: false,
@@ -136,14 +89,24 @@ impl Game for MyGame {
         }
     }
 
-    fn update(&mut self, input: &Input, dt: f32) {
+    fn init_map() -> [[Tile; MAP_SIZE]; MAP_SIZE] {
+        let mut map = [[Tile::new(0.0, 0.0, TileType::Grass); MAP_SIZE]; MAP_SIZE];
+        for (y, row) in map.iter_mut().enumerate() {
+            for (x, tile) in row.iter_mut().enumerate() {
+                *tile = Tile::new(x as f32 * TILE_SIZE, y as f32 * TILE_SIZE, TileType::Grass);
+            }
+        }
+        map
+    }
+
+    /// Normal gameplay update. Returns Some(state) to transition away.
+    pub fn update(&mut self, input: &Input, dt: f32) -> Option<GameState> {
         self.player.update(input, dt);
 
-        // Resolve player agains all solid tiles + objects at once
         let (nx, ny) = self.collision_world.resolve_player(
             &self.player.collision_box,
             self.player.x,
-            self.player.y
+            self.player.y,
         );
         self.player.x = nx;
         self.player.y = ny;
@@ -152,7 +115,13 @@ impl Game for MyGame {
             self.debug = !self.debug;
         }
 
-        // calculate fps
+        // Pause on Escape and move self into the Paused variant
+        if input.is_just_pressed(KeyCode::Space) {
+            let game = std::mem::replace(self, MyGame::new(0.0, 0.0));
+            return Some(GameState::Paused(game));
+        }
+
+        // FPS counter
         self.frame_count += 1;
         self.fps_timer += dt;
         if self.fps_timer >= 1.0 {
@@ -160,15 +129,26 @@ impl Game for MyGame {
             self.frame_count = 0;
             self.fps_timer -= 1.0;
         }
+
+        None
     }
 
-    fn render(&self, renderer: &mut Renderer) {
+    /// Called while paused. Escape resumes, everything else stays paused.
+    pub fn update_paused(&mut self, input: &Input) -> Option<GameState> {
+        if input.is_just_pressed(KeyCode::Space) {
+            let game = std::mem::replace(self, MyGame::new(0.0, 0.0));
+            return Some(GameState::Playing(game));
+        }
+        None
+    }
+
+    pub fn render(&self, renderer: &mut Renderer) {
         renderer.camera.position.x =
             self.player.x + TILE_SIZE / 2.0 - self.camera.logical_width / 2.0;
         renderer.camera.position.y =
             self.player.y + TILE_SIZE / 2.0 - self.camera.logical_height / 2.0;
 
-        // Ground first always behind everything
+        // Ground always behind everything
         for row in &self.map {
             for tile in row {
                 if tile.tile_type.is_ground() {
@@ -177,7 +157,7 @@ impl Game for MyGame {
             }
         }
 
-        // Build Y-sorted draw list using indices
+        // Y-sorted draw list
         let mut calls: Vec<(f32, DrawCall)> = Vec::new();
 
         for (y, row) in self.map.iter().enumerate() {
@@ -187,14 +167,10 @@ impl Game for MyGame {
                 }
             }
         }
-
         for (i, object) in self.objects.iter().enumerate() {
             calls.push((object.feet_y(), DrawCall::Object(i)));
         }
-
-        // Player feet = bottom of 2-tile-high sprite
         calls.push((self.player.y + TILE_SIZE * 2.0, DrawCall::Player));
-
         calls.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
 
         for (order, (_, call)) in calls.iter().enumerate() {
@@ -202,7 +178,14 @@ impl Game for MyGame {
                 DrawCall::Tile(row, col) => {
                     let tile = &self.map[*row][*col];
                     let key = format!("{}_{}", tile.sprite_name(), order);
-                    renderer.draw_sprite_keyed(&key, tile.sprite_name(), tile.x, tile.y, tile.w, tile.h);
+                    renderer.draw_sprite_keyed(
+                        &key,
+                        tile.sprite_name(),
+                        tile.x,
+                        tile.y,
+                        tile.w,
+                        tile.h,
+                    );
                 }
                 DrawCall::Object(i) => {
                     self.objects[*i].render_ordered(renderer, order, self.debug);
@@ -213,14 +196,23 @@ impl Game for MyGame {
             }
         }
 
-        // Render debugging stuff
         if self.debug {
             self.draw_fps(renderer);
         }
     }
 
-    fn on_resize(&mut self, width: f32, height: f32) {
+    pub fn on_resize(&mut self, width: f32, height: f32) {
         self.camera.update_aspect_ratio(width, height);
+    }
+
+    fn draw_fps(&self, renderer: &mut Renderer) {
+        let text = format!("{} FPS", self.fps);
+        let scale = 0.5;
+        let padding = 2.0;
+        let text_w = self.font.measure(&text, scale);
+        let x = renderer.camera.position.x + renderer.camera.logical_width - text_w - padding;
+        let y = renderer.camera.position.y + padding;
+        self.font.draw(renderer, &text, x, y, scale);
     }
 }
 

@@ -10,7 +10,14 @@ pub struct Object {
 }
 
 impl Object {
-    pub fn new(x: f32, y: f32, w: f32, h: f32, object_type: ObjectType, collision_box: CollisionBox) -> Self {
+    pub fn new(
+        x: f32,
+        y: f32,
+        w: f32,
+        h: f32,
+        object_type: ObjectType,
+        collision_box: CollisionBox,
+    ) -> Self {
         Self {
             x,
             y,
@@ -23,10 +30,6 @@ impl Object {
 
     pub fn object_name(&self) -> &'static str {
         self.object_type.object_name()
-    }
-
-    pub fn render(&self, renderer: &mut Renderer) {
-        renderer.draw_sprite(self.object_name(), self.x, self.y, self.w, self.h);
     }
 
     /// Render with a unique batch key so Y-sorting works when multiple

@@ -112,10 +112,5 @@ pub fn load_sprites(engine: &Engine, renderer: &mut Renderer) {
         include_bytes!("../../assets/font.png"),
     );
 
-    renderer.create_solid_texture(
-        &engine.device,
-        &engine.queue,
-        "debug_red",
-        [255, 0, 0, 100],
-    );
+    renderer.create_solid_texture(&engine.device, &engine.queue, "debug_red", [255, 0, 0, 100]);
 }

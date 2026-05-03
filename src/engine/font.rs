@@ -7,7 +7,7 @@ use crate::engine::renderer::Renderer;
 
 const CHAR_SIZE: f32 = 16.0;
 const ATLAS_W: f32 = 208.0; // 13 cols × 16px
-const ATLAS_H: f32 = 64.0;  //  4 rows × 16px
+const ATLAS_H: f32 = 64.0; //  4 rows × 16px
 
 pub struct Font {
     texture_name: String,
