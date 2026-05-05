@@ -53,7 +53,7 @@ pub struct Renderer {
     texture_bind_group_layout: wgpu::BindGroupLayout,
     textures: HashMap<String, StoredTexture>,
 
-    // Per-frame sprite batch — IndexMap preserves insertion order = Y-sort order
+    // Per-frame sprite batch (IndexMap preserves insertion order = Y-sort order)
     batches: IndexMap<String, Vec<Vertex>>,
     batch_texture_map: HashMap<String, String>,
 }

@@ -54,7 +54,7 @@ impl GameState {
 
     fn render_pause_overlay(renderer: &mut Renderer) {
         renderer.draw_sprite(
-            "debug_red",
+            "transparent_gray",
             renderer.camera.position.x,
             renderer.camera.position.y,
             renderer.camera.logical_width,

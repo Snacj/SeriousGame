@@ -19,7 +19,7 @@ impl Font {
     pub fn new(texture_name: &str) -> Self {
         Self {
             texture_name: texture_name.to_string(),
-            letter_spacing: 0.0,
+            letter_spacing: -8.0,
         }
     }
 

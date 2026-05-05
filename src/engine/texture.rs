@@ -94,8 +94,22 @@ pub fn load_sprites(engine: &Engine, renderer: &mut Renderer) {
     renderer.load_texture(
         &engine.device,
         &engine.queue,
+        "body_background",
+        include_bytes!("../../assets/body_background_tile.png"),
+    );
+
+    renderer.load_texture(
+        &engine.device,
+        &engine.queue,
+        "body_obstacle",
+        include_bytes!("../../assets/body_obstacle_tile.png"),
+    );
+
+    renderer.load_texture(
+        &engine.device,
+        &engine.queue,
         "player",
-        include_bytes!("../../assets/player2.png"),
+        include_bytes!("../../assets/player_v3.png"),
     );
 
     renderer.load_texture(
@@ -109,8 +123,9 @@ pub fn load_sprites(engine: &Engine, renderer: &mut Renderer) {
         &engine.device,
         &engine.queue,
         "font",
-        include_bytes!("../../assets/font.png"),
+        include_bytes!("../../assets/font2.png"),
     );
 
     renderer.create_solid_texture(&engine.device, &engine.queue, "debug_red", [255, 0, 0, 100]);
+    renderer.create_solid_texture(&engine.device, &engine.queue, "transparent_gray", [128, 128, 128, 100]);
 }

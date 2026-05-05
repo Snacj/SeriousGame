@@ -4,6 +4,7 @@ use crate::engine::camera::Camera;
 use crate::engine::collision::{CollisionBox, CollisionWorld, Rect};
 use crate::engine::font::Font;
 use crate::engine::input::Input;
+use crate::engine::map;
 use crate::engine::renderer::Renderer;
 use crate::game::GameState;
 use crate::game::object::{Object, ObjectType};
@@ -33,6 +34,7 @@ impl MyGame {
 
         let collision_box = CollisionBox::new(8.0, 64.0, 80.0, 64.0);
         let mut objects: Vec<Object> = Vec::new();
+
         objects.push(Object::new(
             4.0 * TILE_SIZE,
             4.0 * TILE_SIZE,
@@ -58,7 +60,7 @@ impl MyGame {
             collision_box,
         ));
 
-        let map = Self::init_map();
+        let map = map::load_map(include_bytes!("../../map/test_map.json"));
         let mut collision_world = CollisionWorld::new();
 
         for row in &map {
@@ -87,16 +89,6 @@ impl MyGame {
             frame_count: 0,
             fps_timer: 0.0,
         }
-    }
-
-    fn init_map() -> [[Tile; MAP_SIZE]; MAP_SIZE] {
-        let mut map = [[Tile::new(0.0, 0.0, TileType::Grass); MAP_SIZE]; MAP_SIZE];
-        for (y, row) in map.iter_mut().enumerate() {
-            for (x, tile) in row.iter_mut().enumerate() {
-                *tile = Tile::new(x as f32 * TILE_SIZE, y as f32 * TILE_SIZE, TileType::Grass);
-            }
-        }
-        map
     }
 
     /// Normal gameplay update. Returns Some(state) to transition away.

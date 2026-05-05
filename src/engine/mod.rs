@@ -1,3 +1,4 @@
+pub mod map;
 pub mod animation;
 pub mod camera;
 pub mod collision;
