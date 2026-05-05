@@ -1,8 +1,10 @@
 use crate::engine::texture::load_sprites;
 use crate::engine::{engine::Engine, input::Input, renderer::Renderer};
+use crate::game::dialogue::{DialogueBox, DialogueData};
 use crate::game::game::MyGame;
 use crate::game::main_menu::MainMenu;
 
+pub mod dialogue;
 pub mod game;
 pub mod main_menu;
 pub mod object;
@@ -13,6 +15,11 @@ pub enum GameState {
     MainMenu(MainMenu),
     Playing(MyGame),
     Paused(MyGame),
+    Dialogue {
+        game: MyGame,
+        data: DialogueData,
+        dialogue_box: DialogueBox,
+    },
 }
 
 impl GameState {
@@ -29,6 +36,13 @@ impl GameState {
             GameState::MainMenu(menu) => menu.update(input),
             GameState::Playing(game) => game.update(input, dt),
             GameState::Paused(game) => game.update_paused(input),
+            GameState::Dialogue { game, data, .. } => {
+                if input.is_just_pressed(winit::keyboard::KeyCode::Enter) {
+                    let game = std::mem::replace(game, MyGame::new(0.0, 0.0));
+                    return Some(GameState::Playing(game));
+                }
+                None
+            }
         }
     }
 
@@ -41,6 +55,14 @@ impl GameState {
                 game.render(renderer);
                 Self::render_pause_overlay(renderer);
             }
+            GameState::Dialogue {
+                game,
+                data,
+                dialogue_box,
+            } => {
+                game.render(renderer);
+                dialogue_box.render(renderer, data);
+            }
         }
     }
 
@@ -49,6 +71,7 @@ impl GameState {
             GameState::MainMenu(menu) => menu.on_resize(w, h),
             GameState::Playing(game) => game.on_resize(w, h),
             GameState::Paused(game) => game.on_resize(w, h),
+            GameState::Dialogue { game, .. } => game.on_resize(w, h),
         }
     }
 

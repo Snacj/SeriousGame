@@ -93,7 +93,15 @@ impl MyGame {
 
     /// Normal gameplay update. Returns Some(state) to transition away.
     pub fn update(&mut self, input: &Input, dt: f32) -> Option<GameState> {
-        self.player.update(input, dt);
+        if let Some(dialogue_data) = self.player.update(input, dt, &self.objects) {
+            // Transition to Dialogue state — world freezes, box appears
+            let game = std::mem::replace(self, MyGame::new(0.0, 0.0));
+            return Some(GameState::Dialogue {
+                game,
+                data: dialogue_data,
+                dialogue_box: crate::game::dialogue::DialogueBox::new(),
+            });
+        }
 
         let (nx, ny) = self.collision_world.resolve_player(
             &self.player.collision_box,

@@ -46,7 +46,7 @@ impl MainMenu {
         let cy = renderer.camera.logical_height / 2.0;
 
         self.font
-            .draw_centered(renderer, "FOREST EXPLORER", cx, cy - 30.0, 1.0);
+            .draw_centered(renderer, "BODY QUEST", cx, cy - 30.0, 1.0);
         self.font
             .draw_centered(renderer, "PRESS SPACE TO START", cx, cy + 10.0, 0.8);
     }

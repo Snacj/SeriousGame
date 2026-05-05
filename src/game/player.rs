@@ -7,7 +7,7 @@ use crate::{
         input::Input,
         renderer::Renderer,
     },
-    game::game::TILE_SIZE,
+    game::{dialogue::DialogueData, game::TILE_SIZE, object::Object},
 };
 
 const ATLAS_TEXTURE: &str = "player";
@@ -15,6 +15,8 @@ const FRAME_W: f32 = 16.0;
 const FRAME_H: f32 = 32.0;
 const ATLAS_W: f32 = 80.0;
 const ATLAS_H: f32 = 256.0;
+
+const INTERACT_RANGE: f32 = TILE_SIZE * 4.0;
 
 pub struct Player {
     pub x: f32,
@@ -85,15 +87,54 @@ impl Player {
         }
     }
 
-    pub fn update(&mut self, input: &Input, dt: f32) {
+    pub fn update(&mut self, input: &Input, dt: f32, objects: &[Object]) -> Option<DialogueData> {
         self.update_position(input, dt);
-
         self.update_animation();
         self.animations.step(dt);
 
-        if input.is_just_released(KeyCode::Enter) || input.is_just_pressed(KeyCode::Space) {
-            self.interact();
+        // Check for interaction press
+        if input.is_just_pressed(KeyCode::Enter) {
+            return self.try_interact(objects);
         }
+
+        None
+    }
+
+    /// Find the nearest interactable object and return its dialogue, if any.
+    fn try_interact(&self, objects: &[Object]) -> Option<DialogueData> {
+        let mut nearest_dist = INTERACT_RANGE;
+        let mut nearest: Option<&Object> = None;
+
+        for obj in objects {
+            let cx = obj.x + obj.w / 2.0;
+            let cy = obj.y + obj.h / 2.0;
+            let dx = self.x - cx;
+            let dy = self.y - cy;
+            let dist = (dx * dx + dy * dy).sqrt();
+
+            if dist < nearest_dist {
+                nearest_dist = dist;
+                nearest = Some(obj);
+            }
+        }
+
+        if let Some(obj) = nearest {
+            if let Some(data) = &obj.interaction {
+                log::info!(
+                    "Interacting with {} at ({:.0}, {:.0})",
+                    obj.object_type.object_name(),
+                    obj.x,
+                    obj.y
+                );
+                return Some(data.clone());
+            }
+        }
+
+        let tile_x = (self.x / TILE_SIZE) as usize;
+        let tile_y = (self.y / TILE_SIZE) as usize;
+        log::info!("No interactable nearby, tile ({}, {})", tile_x, tile_y);
+
+        None
     }
 
     fn update_position(&mut self, input: &Input, dt: f32) {
