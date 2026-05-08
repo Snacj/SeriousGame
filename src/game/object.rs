@@ -1,36 +1,34 @@
 use crate::engine::collision::CollisionBox;
+use crate::engine::font::Font;
 use crate::engine::renderer::Renderer;
 use crate::game::dialogue::{DialogueData, MinigameTrigger};
+use crate::game::game::TILE_SIZE;
 
 fn interaction_for(object_type: ObjectType) -> Option<DialogueData> {
     match object_type {
-        ObjectType::House => Some(
-            DialogueData::new(
-                "HOUSE",
-                &[
-                    "This is a weird house.",
-                    "I wonder whats inside...",
-                    "Hmmm the door is locked!",
-                ],
-            )
-        ),
-        ObjectType::RedBloodCell => Some(
-            DialogueData::new(
-                "RED BLOOD CELL",
-                &[
-                    "I carry oxygen through",
-                    "your bloodstream.",
-                    "Without me cells die!",
-                ],
-            )
-        ),
+        ObjectType::House => Some(DialogueData::new(
+            "HOUSE",
+            &[
+                "This is a weird house",
+                "I wonder whats inside",
+                "Hmmm the door is locked",
+            ],
+        )),
+        ObjectType::RedBloodCell => Some(DialogueData::new(
+            "RED BLOOD CELL",
+            &[
+                "I carry oxygen through",
+                "your bloodstream",
+                "Without me cells die",
+            ],
+        )),
         ObjectType::VirusStation => Some(
             DialogueData::new(
                 "VIRUS DETECTED",
                 &[
-                    "A virus is attacking!",
+                    "A virus is attacking",
                     "Help the immune system",
-                    "fight it off.",
+                    "fight it off",
                 ],
             )
             .with_minigame(MinigameTrigger::CatchVirus),
@@ -39,9 +37,9 @@ fn interaction_for(object_type: ObjectType) -> Option<DialogueData> {
             DialogueData::new(
                 "NUTRITION LAB",
                 &[
-                    "What you eat matters.",
+                    "What you eat matters",
                     "Sort healthy food from",
-                    "junk to heal the body.",
+                    "junk to heal the body",
                 ],
             )
             .with_minigame(MinigameTrigger::SortFood),
@@ -52,7 +50,7 @@ fn interaction_for(object_type: ObjectType) -> Option<DialogueData> {
                 &[
                     "Vaccines train your",
                     "immune system to fight",
-                    "disease before it hits.",
+                    "disease before it hits",
                 ],
             )
             .with_minigame(MinigameTrigger::VaccineTiming),
@@ -108,7 +106,12 @@ impl Object {
         renderer.draw_sprite(self.object_name(), self.x, self.y, self.w, self.h);
     }
 
-    pub fn render_ordered(&self, renderer: &mut Renderer, order: usize, debug: bool) {
+    pub fn render_ordered(
+        &self,
+        renderer: &mut Renderer,
+        order: usize,
+        debug: bool,
+    ) {
         let key = format!("{}_{}", self.object_name(), order);
         renderer.draw_sprite_keyed(&key, self.object_name(), self.x, self.y, self.w, self.h);
 

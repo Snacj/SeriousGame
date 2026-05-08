@@ -34,7 +34,7 @@ impl Vertex {
     }
 }
 
-const MAX_SPRITES: usize = 8192;
+const MAX_SPRITES: usize = 8192 * 2;
 const MAX_VERTICES: usize = MAX_SPRITES * 4;
 const MAX_INDICES: usize = MAX_SPRITES * 6;
 

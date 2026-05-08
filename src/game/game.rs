@@ -190,7 +190,22 @@ impl MyGame {
                     self.objects[*i].render_ordered(renderer, order, self.debug);
                 }
                 DrawCall::Player => {
-                    self.player.render_ordered(renderer, order, self.debug);
+                    let show_prompt = self.objects.iter().any(|obj| {
+                        obj.interaction.is_some()
+                            && obj.is_near(
+                                self.player.x,
+                                self.player.y,
+                                crate::game::player::INTERACT_RANGE,
+                            )
+                    });
+
+                    self.player.render_ordered(
+                        renderer,
+                        order,
+                        self.debug,
+                        show_prompt,
+                        &self.font,
+                    );
                 }
             }
         }

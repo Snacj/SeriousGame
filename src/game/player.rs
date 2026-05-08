@@ -4,6 +4,7 @@ use crate::{
     engine::{
         animation::{Animation, AnimationSet},
         collision::CollisionBox,
+        font::Font,
         input::Input,
         renderer::Renderer,
     },
@@ -16,7 +17,7 @@ const FRAME_H: f32 = 32.0;
 const ATLAS_W: f32 = 80.0;
 const ATLAS_H: f32 = 256.0;
 
-const INTERACT_RANGE: f32 = TILE_SIZE * 4.0;
+pub const INTERACT_RANGE: f32 = TILE_SIZE * 4.0;
 
 pub struct Player {
     pub x: f32,
@@ -55,7 +56,14 @@ impl Player {
     }
 
     /// Render with a unique batch key so Y-sorting works correctly.
-    pub fn render_ordered(&self, renderer: &mut Renderer, order: usize, debug: bool) {
+    pub fn render_ordered(
+        &self,
+        renderer: &mut Renderer,
+        order: usize,
+        debug: bool,
+        show_interact_prompt: bool,
+        font: &Font,
+    ) {
         let (row, col) = self.animations.current_frame();
         let key = format!("{}_{}", ATLAS_TEXTURE, order);
         renderer.draw_sprite_frame_keyed(
@@ -72,6 +80,24 @@ impl Player {
             ATLAS_W,
             ATLAS_H,
         );
+
+        if show_interact_prompt {
+            let prompt = "ENTER";
+            let scale = 0.5;
+            let prompt_w = font.measure(prompt, scale);
+            let prompt_x = self.x + TILE_SIZE / 2.0 - prompt_w / 2.0;
+            let prompt_y = self.y - TILE_SIZE * 2.0;
+            let indicator_key = format!("indicator_{}", order);
+            renderer.draw_sprite_keyed(
+                &indicator_key,
+                "ui_panel",
+                prompt_x - 3.0,
+                prompt_y - 2.0,
+                prompt_w + 3.0,
+                TILE_SIZE * scale + 4.0,
+            );
+            font.draw(renderer, prompt, prompt_x, prompt_y, scale);
+        }
 
         if debug {
             let cb = &self.collision_box;
