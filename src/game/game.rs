@@ -12,14 +12,15 @@ use crate::game::player::Player;
 use crate::game::tile::{Tile, TileType};
 
 pub const TILE_SIZE: f32 = 16.0;
-pub const MAP_SIZE: usize = 32;
+pub const MAP_WIDTH: usize = 64;
+pub const MAP_HEIGHT: usize = 64;
 
 pub struct MyGame {
     pub camera: Camera,
     font: Font,
     objects: Vec<Object>,
     player: Player,
-    map: [[Tile; MAP_SIZE]; MAP_SIZE],
+    map: [[Tile; MAP_WIDTH]; MAP_HEIGHT],
     collision_world: CollisionWorld,
     debug: bool,
     fps: u32,
@@ -91,10 +92,8 @@ impl MyGame {
         }
     }
 
-    /// Normal gameplay update. Returns Some(state) to transition away.
     pub fn update(&mut self, input: &Input, dt: f32) -> Option<GameState> {
         if let Some(dialogue_data) = self.player.update(input, dt, &self.objects) {
-            // Transition to Dialogue state — world freezes, box appears
             let game = std::mem::replace(self, MyGame::new(0.0, 0.0));
             return Some(GameState::Dialogue {
                 game,

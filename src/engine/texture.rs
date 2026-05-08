@@ -126,7 +126,19 @@ pub fn load_sprites(engine: &Engine, renderer: &mut Renderer) {
         include_bytes!("../../assets/font2.png"),
     );
 
+    renderer.load_texture(
+        &engine.device,
+        &engine.queue,
+        "dialogue_background",
+        include_bytes!("../../assets/dialogue_background.png"),
+    );
+
     renderer.create_solid_texture(&engine.device, &engine.queue, "debug_red", [255, 0, 0, 100]);
-    renderer.create_solid_texture(&engine.device, &engine.queue, "transparent_gray", [128, 128, 128, 100]);
+    renderer.create_solid_texture(
+        &engine.device,
+        &engine.queue,
+        "transparent_gray",
+        [128, 128, 128, 100],
+    );
     renderer.create_solid_texture(&engine.device, &engine.queue, "ui_panel", [20, 20, 40, 210]);
 }

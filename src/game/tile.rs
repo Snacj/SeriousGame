@@ -47,9 +47,14 @@ impl TileType {
 
     pub fn from_tiled_id(id: u32) -> Self {
         match id {
+            0 => TileType::Body,
+            1 => TileType::Body,
             2 => TileType::Body,
             3 => TileType::Obstacle,
-            _ => TileType::Body,
+            _ => {
+                log::warn!("Unknown tile id: {}", id);
+                TileType::Body
+            }
         }
     }
 

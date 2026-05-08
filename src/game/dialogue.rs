@@ -7,7 +7,7 @@ pub struct DialogueData {
     pub minigame: Option<MinigameTrigger>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum MinigameTrigger {
     CatchVirus,
     SortFood,
@@ -51,9 +51,9 @@ impl DialogueBox {
         // Box dimensions in world units
         let padding = 6.0;
         let box_w = cam_w - padding * 2.0;
-        let line_h = 10.0; // space between lines at scale 0.6
+        let line_h = 8.0; // space between lines at scale 0.6
         let num_lines = data.lines.len() as f32;
-        let box_h = 14.0              // title area
+        let box_h = 18.0              // title area
             + (num_lines * line_h)    // body lines
             + 12.0;                   // hint line + bottom padding
 
@@ -62,6 +62,7 @@ impl DialogueBox {
         let box_y = cam_y + cam_h - box_h - padding;
 
         renderer.draw_sprite("ui_panel", box_x, box_y, box_w, box_h);
+        // renderer.draw_sprite("dialogue_background", box_x, box_y, box_w, box_h);
 
         // Title
         self.font.draw(

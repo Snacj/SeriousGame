@@ -8,9 +8,9 @@ fn interaction_for(object_type: ObjectType) -> Option<DialogueData> {
             DialogueData::new(
                 "HOUSE",
                 &[
-                    "This is testing",
-                    "Next Line.",
-                    "Love if this works!!",
+                    "This is a weird house.",
+                    "I wonder whats inside...",
+                    "Hmmm the door is locked!",
                 ],
             )
         ),
