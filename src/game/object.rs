@@ -1,8 +1,6 @@
 use crate::engine::collision::CollisionBox;
-use crate::engine::font::Font;
 use crate::engine::renderer::Renderer;
 use crate::game::dialogue::{DialogueData, MinigameTrigger};
-use crate::game::game::TILE_SIZE;
 
 fn interaction_for(object_type: ObjectType) -> Option<DialogueData> {
     match object_type {

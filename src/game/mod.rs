@@ -11,6 +11,7 @@ pub mod dialogue;
 pub mod game;
 pub mod main_menu;
 pub mod minigame;
+pub mod minigame_virus;
 pub mod object;
 pub mod player;
 pub mod tile;
@@ -59,7 +60,12 @@ impl GameState {
                     let next = if let Some(trigger) = data.minigame {
                         let (minigame, title, fact) = make_minigame(trigger);
                         let game = std::mem::replace(game, MyGame::new(0.0, 0.0));
-                        GameState::Minigame { game, minigame, outcome_title: title, outcome_fact: fact }
+                        GameState::Minigame {
+                            game,
+                            minigame,
+                            outcome_title: title,
+                            outcome_fact: fact,
+                        }
                     } else {
                         let game = std::mem::replace(game, MyGame::new(0.0, 0.0));
                         GameState::Playing(game)
@@ -69,33 +75,36 @@ impl GameState {
                 None
             }
 
-            GameState::Minigame { game, minigame, outcome_title, outcome_fact } => {
-                match minigame.update(input, dt) {
-                    MinigameResult::Running => None,
-                    MinigameResult::Won { score } => {
-                        let outcome = MinigameOutcome {
-                            won: true,
-                            score,
-                            title: outcome_title,
-                            fact: outcome_fact,
-                        };
-                        let game = std::mem::replace(game, MyGame::new(0.0, 0.0));
-                        Some(GameState::Results { game, outcome })
-                    }
-                    MinigameResult::Lost => {
-                        let outcome = MinigameOutcome {
-                            won: false,
-                            score: 0,
-                            title: outcome_title,
-                            fact: outcome_fact,
-                        };
-                        let game = std::mem::replace(game, MyGame::new(0.0, 0.0));
-                        Some(GameState::Results { game, outcome })
-                    }
+            GameState::Minigame {
+                game,
+                minigame,
+                outcome_title,
+                outcome_fact,
+            } => match minigame.update(input, dt) {
+                MinigameResult::Running => None,
+                MinigameResult::Won { score } => {
+                    let outcome = MinigameOutcome {
+                        won: true,
+                        score,
+                        title: outcome_title,
+                        fact: outcome_fact,
+                    };
+                    let game = std::mem::replace(game, MyGame::new(0.0, 0.0));
+                    Some(GameState::Results { game, outcome })
                 }
-            }
+                MinigameResult::Lost => {
+                    let outcome = MinigameOutcome {
+                        won: false,
+                        score: 0,
+                        title: outcome_title,
+                        fact: outcome_fact,
+                    };
+                    let game = std::mem::replace(game, MyGame::new(0.0, 0.0));
+                    Some(GameState::Results { game, outcome })
+                }
+            },
 
-            GameState::Results { game, .. } => {
+            GameState::Results { game, outcome } => {
                 if input.is_just_pressed(KeyCode::Enter) || input.is_just_pressed(KeyCode::Space) {
                     let game = std::mem::replace(game, MyGame::new(0.0, 0.0));
                     return Some(GameState::Playing(game));
@@ -108,23 +117,59 @@ impl GameState {
     pub fn render(&self, renderer: &mut Renderer) {
         match self {
             GameState::MainMenu(menu) => menu.render(renderer),
-            GameState::Playing(game) => game.render(renderer),
+            GameState::Playing(game) => game.render(renderer, true),
             GameState::Paused(game) => {
-                game.render(renderer);
+                game.render(renderer, false);
                 Self::render_overlay(renderer, "transparent_gray");
             }
-            GameState::Dialogue { game, data, dialogue_box } => {
-                game.render(renderer);
+            GameState::Dialogue {
+                game,
+                data,
+                dialogue_box,
+            } => {
+                game.render(renderer, false);
                 dialogue_box.render(renderer, data);
             }
             GameState::Minigame { minigame, .. } => {
                 minigame.render(renderer);
             }
             GameState::Results { game, outcome } => {
-                game.render(renderer);
+                game.render(renderer, false);
                 Self::render_overlay(renderer, "transparent_gray");
-                // TODO: draw outcome.title, outcome.fact, win/lose with font
-                let _ = outcome;
+
+                let cam_x = renderer.camera.position.x;
+                let cam_y = renderer.camera.position.y;
+                let cam_w = renderer.camera.logical_width;
+                let cam_h = renderer.camera.logical_height;
+                let cx = cam_x + cam_w / 2.0;
+                let cy = cam_y + cam_h / 2.0;
+
+                let font = crate::engine::font::Font::new("font");
+
+                let title = if outcome.won { "YOU WIN" } else { "YOU LOST" };
+                font.draw_ui(
+                    renderer,
+                    title,
+                    cx - font.measure(title, 1.0) / 2.0,
+                    cy - 20.0,
+                    1.0,
+                );
+
+                font.draw_ui(
+                    renderer,
+                    outcome.fact,
+                    cx - font.measure(outcome.fact, 0.5) / 2.0,
+                    cy,
+                    0.5,
+                );
+
+                font.draw_ui(
+                    renderer,
+                    "PRESS ENTER TO CONTINUE",
+                    cx - font.measure("PRESS ENTER TO CONTINUE", 0.5) / 2.0,
+                    cy + 16.0,
+                    0.5,
+                );
             }
         }
     }
@@ -157,7 +202,7 @@ impl GameState {
 fn make_minigame(trigger: MinigameTrigger) -> (Box<dyn Minigame>, &'static str, &'static str) {
     match trigger {
         MinigameTrigger::CatchVirus => (
-            Box::new(PlaceholderMinigame::new("CATCH THE VIRUS")),
+            Box::new(minigame_virus::VirusMinigame::new()),
             "IMMUNE SYSTEM",
             "White blood cells identify and destroy viruses.",
         ),

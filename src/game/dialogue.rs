@@ -61,11 +61,11 @@ impl DialogueBox {
         let box_x = cam_x + padding;
         let box_y = cam_y + cam_h - box_h - padding;
 
-        renderer.draw_sprite("ui_panel", box_x, box_y, box_w, box_h);
+        renderer.draw_sprite_ui("ui_panel", box_x, box_y, box_w, box_h);
         // renderer.draw_sprite("dialogue_background", box_x, box_y, box_w, box_h);
 
         // Title
-        self.font.draw(
+        self.font.draw_ui(
             renderer,
             data.title,
             box_x + padding,
@@ -75,7 +75,7 @@ impl DialogueBox {
 
         // Body lines
         for (i, line) in data.lines.iter().enumerate() {
-            self.font.draw(
+            self.font.draw_ui(
                 renderer,
                 line,
                 box_x + padding,
@@ -91,7 +91,7 @@ impl DialogueBox {
             "ENTER TO CLOSE"
         };
         let hint_w = self.font.measure(hint, 0.5);
-        self.font.draw(
+        self.font.draw_ui(
             renderer,
             hint,
             box_x + box_w - hint_w - padding,

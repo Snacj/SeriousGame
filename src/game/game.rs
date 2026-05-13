@@ -9,7 +9,7 @@ use crate::engine::renderer::Renderer;
 use crate::game::GameState;
 use crate::game::object::{Object, ObjectType};
 use crate::game::player::Player;
-use crate::game::tile::{Tile, TileType};
+use crate::game::tile::Tile;
 
 pub const TILE_SIZE: f32 = 16.0;
 pub const MAP_WIDTH: usize = 64;
@@ -33,16 +33,17 @@ impl MyGame {
         let mut camera = Camera::new(180.0);
         camera.update_aspect_ratio(screen_width, screen_height);
 
-        let collision_box = CollisionBox::new(8.0, 64.0, 80.0, 64.0);
+        let house_collision_box = CollisionBox::new(8.0, 64.0, 80.0, 64.0);
+        let virus_collision_box = CollisionBox::new(24.0, 24.0, 48.0, 48.0);
         let mut objects: Vec<Object> = Vec::new();
 
         objects.push(Object::new(
             4.0 * TILE_SIZE,
             4.0 * TILE_SIZE,
             96.0,
-            128.0,
-            ObjectType::House,
-            collision_box,
+            96.0,
+            ObjectType::VirusStation,
+            virus_collision_box,
         ));
         objects.push(Object::new(
             16.0 * TILE_SIZE,
@@ -50,7 +51,7 @@ impl MyGame {
             96.0,
             128.0,
             ObjectType::House,
-            collision_box,
+            house_collision_box,
         ));
         objects.push(Object::new(
             24.0 * TILE_SIZE,
@@ -58,7 +59,7 @@ impl MyGame {
             96.0,
             128.0,
             ObjectType::House,
-            collision_box,
+            house_collision_box,
         ));
 
         let map = map::load_map(include_bytes!("../../map/test_map.json"));
@@ -141,7 +142,7 @@ impl MyGame {
         None
     }
 
-    pub fn render(&self, renderer: &mut Renderer) {
+    pub fn render(&self, renderer: &mut Renderer, show_ui: bool) {
         renderer.camera.position.x =
             self.player.x + TILE_SIZE / 2.0 - self.camera.logical_width / 2.0;
         renderer.camera.position.y =
@@ -190,7 +191,7 @@ impl MyGame {
                     self.objects[*i].render_ordered(renderer, order, self.debug);
                 }
                 DrawCall::Player => {
-                    let show_prompt = self.objects.iter().any(|obj| {
+                    let show_prompt = show_ui && self.objects.iter().any(|obj| {
                         obj.interaction.is_some()
                             && obj.is_near(
                                 self.player.x,

@@ -133,6 +133,27 @@ pub fn load_sprites(engine: &Engine, renderer: &mut Renderer) {
         include_bytes!("../../assets/dialogue_background.png"),
     );
 
+    renderer.load_texture(
+        &engine.device,
+        &engine.queue,
+        "virus_station",
+        include_bytes!("../../assets/larger_virus.png"),
+    );
+
+    renderer.load_texture(
+        &engine.device,
+        &engine.queue,
+        "virus",
+        include_bytes!("../../assets/virus.png"),
+    );
+
+    renderer.load_texture(
+        &engine.device,
+        &engine.queue,
+        "white_bloodcell",
+        include_bytes!("../../assets/white_bloodcell.png"),
+    );
+
     renderer.create_solid_texture(&engine.device, &engine.queue, "debug_red", [255, 0, 0, 100]);
     renderer.create_solid_texture(
         &engine.device,

@@ -17,7 +17,7 @@ const FRAME_H: f32 = 32.0;
 const ATLAS_W: f32 = 80.0;
 const ATLAS_H: f32 = 256.0;
 
-pub const INTERACT_RANGE: f32 = TILE_SIZE * 4.0;
+pub const INTERACT_RANGE: f32 = TILE_SIZE * 5.0;
 
 pub struct Player {
     pub x: f32,
@@ -88,7 +88,7 @@ impl Player {
             let prompt_x = self.x + TILE_SIZE / 2.0 - prompt_w / 2.0;
             let prompt_y = self.y - TILE_SIZE * 2.0;
             let indicator_key = format!("indicator_{}", order);
-            renderer.draw_sprite_keyed(
+            renderer.draw_sprite_ui_keyed(
                 &indicator_key,
                 "ui_panel",
                 prompt_x - 3.0,
@@ -96,7 +96,7 @@ impl Player {
                 prompt_w + 3.0,
                 TILE_SIZE * scale + 4.0,
             );
-            font.draw(renderer, prompt, prompt_x, prompt_y, scale);
+            font.draw_ui(renderer, prompt, prompt_x, prompt_y, scale);
         }
 
         if debug {

@@ -59,6 +59,74 @@ impl Font {
         }
     }
 
+    pub fn draw_ui(&self, renderer: &mut Renderer, text: &str, x: f32, y: f32, scale: f32) {
+        let char_draw_size = CHAR_SIZE * scale;
+        let advance = char_draw_size + self.letter_spacing * scale;
+        let mut cursor_x = x;
+
+        for ch in text.chars() {
+            if ch == ' ' {
+                cursor_x += advance;
+                continue;
+            }
+            if let Some((col, row)) = char_to_atlas(ch) {
+                renderer.draw_sprite_frame_ui(
+                    &self.texture_name,
+                    cursor_x,
+                    y,
+                    char_draw_size,
+                    char_draw_size,
+                    col,
+                    row,
+                    CHAR_SIZE,
+                    CHAR_SIZE,
+                    ATLAS_W,
+                    ATLAS_H,
+                );
+            }
+            cursor_x += advance;
+        }
+    }
+
+    pub fn draw_keyed(
+        &self,
+        renderer: &mut Renderer,
+        text: &str,
+        x: f32,
+        y: f32,
+        scale: f32,
+        key_prefix: &str,
+    ) {
+        let char_draw_size = CHAR_SIZE * scale;
+        let advance = char_draw_size + self.letter_spacing * scale;
+        let mut cursor_x = x;
+
+        for (i, ch) in text.chars().enumerate() {
+            if ch == ' ' {
+                cursor_x += advance;
+                continue;
+            }
+            if let Some((col, row)) = char_to_atlas(ch) {
+                let key = format!("{}_{}", key_prefix, i);
+                renderer.draw_sprite_frame_keyed(
+                    &key,
+                    &self.texture_name,
+                    cursor_x,
+                    y,
+                    char_draw_size,
+                    char_draw_size,
+                    col,
+                    row,
+                    CHAR_SIZE,
+                    CHAR_SIZE,
+                    ATLAS_W,
+                    ATLAS_H,
+                );
+            }
+            cursor_x += advance;
+        }
+    }
+
     /// Draw text centered horizontally around `cx`.
     pub fn draw_centered(&self, renderer: &mut Renderer, text: &str, cx: f32, y: f32, scale: f32) {
         let w = self.measure(text, scale);
