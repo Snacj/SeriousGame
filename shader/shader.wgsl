@@ -5,7 +5,16 @@ struct CameraUniform {
 @group(0) @binding(0)
 var<uniform> camera: CameraUniform;
 
-// Texture moved to group(1)
+// Time uniform
+struct TimeUniform {
+    time: f32,
+    _pad0: f32,
+    _pad1: f32,
+    _pad2: f32,
+};
+@group(2) @binding(0)
+var<uniform> time_data: TimeUniform;
+
 @group(1) @binding(0)
 var t_diffuse: texture_2d<f32>;
 @group(1) @binding(1)
@@ -31,5 +40,17 @@ fn vs_main(model: VertexInput) -> VertexOutput {
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    return textureSample(t_diffuse, s_diffuse, in.tex_coords);
+    var color = textureSample(t_diffuse, s_diffuse, in.tex_coords);
+
+    // Pulse brightness 0.7 to 1.0 over ~3 seconds
+    // Add a slight spatial offset using position so tiles don't all pulse in sync
+    let offset = in.clip_position.x * 0.003 + in.clip_position.y * 0.002;
+    let pulse = 0.85 + 0.15 * sin(time_data.time * 2.0 + offset);
+
+    // Only boost the red channel keeps it looking like blood
+    color.r = color.r * pulse;
+    color.g = color.g * (pulse * 0.6); // greens dims more aggressively
+    color.b = color.b * (pulse * 0.4); // blues dims most keeps it red
+
+    return color;
 }

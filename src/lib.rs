@@ -168,7 +168,7 @@ impl ApplicationHandler<Initialized> for App {
 
                 state.render(renderer);
 
-                match renderer.render(engine) {
+                match renderer.render(engine, FIXED_DT) {
                     Ok(_) => {}
                     Err(e) => {
                         log::error!("{e}");
