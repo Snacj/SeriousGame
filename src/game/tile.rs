@@ -37,24 +37,19 @@ pub enum TileType {
 impl TileType {
     pub fn sprite_name(&self) -> &'static str {
         match self {
-            TileType::Body => "body_background",
+            TileType::Body     => "body_background",
             TileType::Obstacle => "body_obstacle",
-            TileType::Grass => "grass",
-            TileType::Tree => "tree",
-            TileType::Stone => "stone",
+            TileType::Grass    => "grass",
+            TileType::Tree     => "tree",
+            TileType::Stone    => "stone",
         }
     }
 
-    pub fn from_tiled_id(id: u32) -> Self {
+    pub fn from_layer(id: u32, is_ground: bool, is_solid: bool) -> Self {
         match id {
-            0 => TileType::Body,
-            1 => TileType::Body,
-            2 => TileType::Body,
-            3 => TileType::Obstacle,
-            _ => {
-                log::warn!("Unknown tile id: {}", id);
-                TileType::Body
-            }
+            1..=1024 => TileType::Body,
+            1025.. => TileType::Obstacle,
+            _ => TileType::Body,
         }
     }
 

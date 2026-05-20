@@ -40,28 +40,19 @@ const MAX_INDICES: usize = MAX_SPRITES * 6;
 
 pub struct Renderer {
     pipeline: wgpu::RenderPipeline,
+    pipeline_pulse: wgpu::RenderPipeline,
     vertex_buffer: wgpu::Buffer,
     index_buffer: wgpu::Buffer,
-
-    // Camera
     pub camera: camera::Camera,
     camera_uniform: camera::CameraUniform,
     camera_buffer: wgpu::Buffer,
     camera_bind_group: wgpu::BindGroup,
-
-    // Textures stored by name
     texture_bind_group_layout: wgpu::BindGroupLayout,
     textures: HashMap<String, StoredTexture>,
-
-    // World layer: tiles, objects, player (Y-sorted, IndexMap preserves order)
+    pulse_batches: IndexMap<String, Vec<Vertex>>,
     world_batches: IndexMap<String, Vec<Vertex>>,
-    // UI layer: dialogue, font, indicators (always draws on top of world)
     ui_batches: IndexMap<String, Vec<Vertex>>,
-    // Maps unique batch keys back to real texture names for keyed draws
     batch_texture_map: HashMap<String, String>,
-
-    // Time uniform
-    time: f32,
     time_buffer: wgpu::Buffer,
     time_bind_group_layout: wgpu::BindGroupLayout,
     time_bind_group: wgpu::BindGroup,
@@ -113,7 +104,6 @@ impl Renderer {
             &camera_uniform,
         );
 
-        // Time uniform setup
         let time_bind_group_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
                 label: Some("time_bind_group_layout"),
@@ -129,7 +119,7 @@ impl Renderer {
                 }],
             });
 
-        let time_data: [f32; 4] = [0.0, 0.0, 0.0, 0.0];
+        let time_data: [f32; 4] = [0.0; 4];
         let time_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("time_buffer"),
             contents: bytemuck::cast_slice(&time_data),
@@ -145,11 +135,6 @@ impl Renderer {
             }],
         });
 
-        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("Shader"),
-            source: wgpu::ShaderSource::Wgsl(include_str!("../../shader/shader.wgsl").into()),
-        });
-
         let render_pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("Render Pipeline Layout"),
@@ -161,17 +146,76 @@ impl Renderer {
                 immediate_size: 0,
             });
 
-        let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("Shader"),
+            source: wgpu::ShaderSource::Wgsl(include_str!("../../shader/shader.wgsl").into()),
+        });
+        let pipeline =
+            Self::build_pipeline(device, &render_pipeline_layout, &shader, surface_format);
+
+        let pulse_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("Pulse Shader"),
+            source: wgpu::ShaderSource::Wgsl(include_str!("../../shader/shader_pulse.wgsl").into()),
+        });
+        let pipeline_pulse =
+            Self::build_pipeline(device, &render_pipeline_layout, &pulse_shader, surface_format);
+
+        let vertex_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Sprite Vertex Buffer"),
+            size: (MAX_VERTICES * std::mem::size_of::<Vertex>()) as u64,
+            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
+        let mut indices = Vec::with_capacity(MAX_INDICES);
+        for i in 0..MAX_SPRITES as u16 {
+            let base = i * 4;
+            indices.extend_from_slice(&[base, base + 1, base + 2, base, base + 2, base + 3]);
+        }
+        let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Sprite Index Buffer"),
+            contents: bytemuck::cast_slice(&indices),
+            usage: wgpu::BufferUsages::INDEX,
+        });
+
+        Self {
+            pipeline,
+            pipeline_pulse,
+            vertex_buffer,
+            index_buffer,
+            camera,
+            camera_uniform,
+            camera_buffer,
+            camera_bind_group,
+            texture_bind_group_layout,
+            textures: HashMap::new(),
+            pulse_batches: IndexMap::new(),
+            world_batches: IndexMap::new(),
+            ui_batches: IndexMap::new(),
+            batch_texture_map: HashMap::new(),
+            time_buffer,
+            time_bind_group_layout,
+            time_bind_group,
+        }
+    }
+
+    fn build_pipeline(
+        device: &wgpu::Device,
+        layout: &wgpu::PipelineLayout,
+        shader: &wgpu::ShaderModule,
+        surface_format: wgpu::TextureFormat,
+    ) -> wgpu::RenderPipeline {
+        device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("Render Pipeline"),
-            layout: Some(&render_pipeline_layout),
+            layout: Some(layout),
             vertex: wgpu::VertexState {
-                module: &shader,
+                module: shader,
                 entry_point: Some("vs_main"),
                 buffers: &[Vertex::desc()],
                 compilation_options: Default::default(),
             },
             fragment: Some(wgpu::FragmentState {
-                module: &shader,
+                module: shader,
                 entry_point: Some("fs_main"),
                 targets: &[Some(wgpu::ColorTargetState {
                     format: surface_format,
@@ -197,44 +241,7 @@ impl Renderer {
             },
             multiview_mask: None,
             cache: None,
-        });
-
-        let vertex_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("Sprite Vertex Buffer"),
-            size: (MAX_VERTICES * std::mem::size_of::<Vertex>()) as u64,
-            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        });
-
-        let mut indices = Vec::with_capacity(MAX_INDICES);
-        for i in 0..MAX_SPRITES as u16 {
-            let base = i * 4;
-            indices.extend_from_slice(&[base, base + 1, base + 2, base, base + 2, base + 3]);
-        }
-        let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Sprite Index Buffer"),
-            contents: bytemuck::cast_slice(&indices),
-            usage: wgpu::BufferUsages::INDEX,
-        });
-
-        Self {
-            pipeline,
-            vertex_buffer,
-            index_buffer,
-            camera,
-            camera_uniform,
-            camera_buffer,
-            camera_bind_group,
-            texture_bind_group_layout,
-            textures: HashMap::new(),
-            world_batches: IndexMap::new(),
-            ui_batches: IndexMap::new(),
-            batch_texture_map: HashMap::new(),
-            time: 0.0,
-            time_buffer,
-            time_bind_group_layout,
-            time_bind_group,
-        }
+        })
     }
 
     pub fn load_texture(
@@ -259,13 +266,7 @@ impl Renderer {
             ],
             label: Some(&format!("{name}_bind_group")),
         });
-        self.textures.insert(
-            name.to_string(),
-            StoredTexture {
-                texture: tex,
-                bind_group,
-            },
-        );
+        self.textures.insert(name.to_string(), StoredTexture { texture: tex, bind_group });
     }
 
     pub fn create_solid_texture(
@@ -276,11 +277,7 @@ impl Renderer {
         color: [u8; 4],
     ) {
         use wgpu::util::DeviceExt;
-        let size = wgpu::Extent3d {
-            width: 1,
-            height: 1,
-            depth_or_array_layers: 1,
-        };
+        let size = wgpu::Extent3d { width: 1, height: 1, depth_or_array_layers: 1 };
         let texture = device.create_texture_with_data(
             queue,
             &wgpu::TextureDescriptor {
@@ -319,227 +316,134 @@ impl Renderer {
         self.textures.insert(
             name.to_string(),
             StoredTexture {
-                texture: crate::engine::texture::Texture {
-                    texture,
-                    view,
-                    sampler,
-                },
+                texture: crate::engine::texture::Texture { texture, view, sampler },
                 bind_group,
             },
         );
     }
 
+    // ── World layer ────────────────────────────────────────────────────────
+
     pub fn draw_sprite(&mut self, texture_name: &str, x: f32, y: f32, w: f32, h: f32) {
-        let batch = self
-            .world_batches
-            .entry(texture_name.to_string())
-            .or_default();
+        let batch = self.world_batches.entry(texture_name.to_string()).or_default();
         batch.extend_from_slice(&[
-            Vertex {
-                position: [x, y, 0.0],
-                tex_coords: [0.0, 0.0],
-            },
-            Vertex {
-                position: [x + w, y, 0.0],
-                tex_coords: [1.0, 0.0],
-            },
-            Vertex {
-                position: [x + w, y + h, 0.0],
-                tex_coords: [1.0, 1.0],
-            },
-            Vertex {
-                position: [x, y + h, 0.0],
-                tex_coords: [0.0, 1.0],
-            },
+            Vertex { position: [x,     y,     0.0], tex_coords: [0.0, 0.0] },
+            Vertex { position: [x + w, y,     0.0], tex_coords: [1.0, 0.0] },
+            Vertex { position: [x + w, y + h, 0.0], tex_coords: [1.0, 1.0] },
+            Vertex { position: [x,     y + h, 0.0], tex_coords: [0.0, 1.0] },
         ]);
     }
 
     pub fn draw_sprite_frame(
-        &mut self,
-        texture_name: &str,
-        x: f32,
-        y: f32,
-        draw_w: f32,
-        draw_h: f32,
-        frame_col: usize,
-        frame_row: usize,
-        frame_w: f32,
-        frame_h: f32,
-        texture_w: f32,
-        texture_h: f32,
+        &mut self, texture_name: &str,
+        x: f32, y: f32, draw_w: f32, draw_h: f32,
+        frame_col: usize, frame_row: usize,
+        frame_w: f32, frame_h: f32, texture_w: f32, texture_h: f32,
     ) {
         let u0 = (frame_col as f32 * frame_w) / texture_w;
         let u1 = u0 + frame_w / texture_w;
         let v0 = (frame_row as f32 * frame_h) / texture_h;
         let v1 = v0 + frame_h / texture_h;
-        let batch = self
-            .world_batches
-            .entry(texture_name.to_string())
-            .or_default();
+        let batch = self.world_batches.entry(texture_name.to_string()).or_default();
         batch.extend_from_slice(&[
-            Vertex {
-                position: [x, y, 0.0],
-                tex_coords: [u0, v0],
-            },
-            Vertex {
-                position: [x + draw_w, y, 0.0],
-                tex_coords: [u1, v0],
-            },
-            Vertex {
-                position: [x + draw_w, y + draw_h, 0.0],
-                tex_coords: [u1, v1],
-            },
-            Vertex {
-                position: [x, y + draw_h, 0.0],
-                tex_coords: [u0, v1],
-            },
+            Vertex { position: [x,          y,          0.0], tex_coords: [u0, v0] },
+            Vertex { position: [x + draw_w, y,          0.0], tex_coords: [u1, v0] },
+            Vertex { position: [x + draw_w, y + draw_h, 0.0], tex_coords: [u1, v1] },
+            Vertex { position: [x,          y + draw_h, 0.0], tex_coords: [u0, v1] },
         ]);
     }
 
-    /// Unique batch key: prevents same-texture sprites merging, preserving Y-sort order.
     pub fn draw_sprite_keyed(
-        &mut self,
-        batch_key: &str,
-        texture_name: &str,
-        x: f32,
-        y: f32,
-        w: f32,
-        h: f32,
+        &mut self, batch_key: &str, texture_name: &str,
+        x: f32, y: f32, w: f32, h: f32,
     ) {
-        self.batch_texture_map
-            .insert(batch_key.to_string(), texture_name.to_string());
+        self.batch_texture_map.insert(batch_key.to_string(), texture_name.to_string());
         let batch = self.world_batches.entry(batch_key.to_string()).or_default();
         batch.extend_from_slice(&[
-            Vertex {
-                position: [x, y, 0.0],
-                tex_coords: [0.0, 0.0],
-            },
-            Vertex {
-                position: [x + w, y, 0.0],
-                tex_coords: [1.0, 0.0],
-            },
-            Vertex {
-                position: [x + w, y + h, 0.0],
-                tex_coords: [1.0, 1.0],
-            },
-            Vertex {
-                position: [x, y + h, 0.0],
-                tex_coords: [0.0, 1.0],
-            },
+            Vertex { position: [x,     y,     0.0], tex_coords: [0.0, 0.0] },
+            Vertex { position: [x + w, y,     0.0], tex_coords: [1.0, 0.0] },
+            Vertex { position: [x + w, y + h, 0.0], tex_coords: [1.0, 1.0] },
+            Vertex { position: [x,     y + h, 0.0], tex_coords: [0.0, 1.0] },
         ]);
     }
 
     pub fn draw_sprite_frame_keyed(
-        &mut self,
-        batch_key: &str,
-        texture_name: &str,
-        x: f32,
-        y: f32,
-        draw_w: f32,
-        draw_h: f32,
-        frame_col: usize,
-        frame_row: usize,
-        frame_w: f32,
-        frame_h: f32,
-        texture_w: f32,
-        texture_h: f32,
+        &mut self, batch_key: &str, texture_name: &str,
+        x: f32, y: f32, draw_w: f32, draw_h: f32,
+        frame_col: usize, frame_row: usize,
+        frame_w: f32, frame_h: f32, texture_w: f32, texture_h: f32,
     ) {
-        self.batch_texture_map
-            .insert(batch_key.to_string(), texture_name.to_string());
+        self.batch_texture_map.insert(batch_key.to_string(), texture_name.to_string());
         let u0 = (frame_col as f32 * frame_w) / texture_w;
         let u1 = u0 + frame_w / texture_w;
         let v0 = (frame_row as f32 * frame_h) / texture_h;
         let v1 = v0 + frame_h / texture_h;
         let batch = self.world_batches.entry(batch_key.to_string()).or_default();
         batch.extend_from_slice(&[
-            Vertex {
-                position: [x, y, 0.0],
-                tex_coords: [u0, v0],
-            },
-            Vertex {
-                position: [x + draw_w, y, 0.0],
-                tex_coords: [u1, v0],
-            },
-            Vertex {
-                position: [x + draw_w, y + draw_h, 0.0],
-                tex_coords: [u1, v1],
-            },
-            Vertex {
-                position: [x, y + draw_h, 0.0],
-                tex_coords: [u0, v1],
-            },
+            Vertex { position: [x,          y,          0.0], tex_coords: [u0, v0] },
+            Vertex { position: [x + draw_w, y,          0.0], tex_coords: [u1, v0] },
+            Vertex { position: [x + draw_w, y + draw_h, 0.0], tex_coords: [u1, v1] },
+            Vertex { position: [x,          y + draw_h, 0.0], tex_coords: [u0, v1] },
         ]);
     }
 
-    // Use for dialogue, font, indicators: always draws on top of world.
+    // ── Pulse layer ────────────────────────────────────────────────────────
+
+    pub fn draw_sprite_pulsing(&mut self, texture_name: &str, x: f32, y: f32, w: f32, h: f32) {
+        let batch = self.pulse_batches.entry(texture_name.to_string()).or_default();
+        batch.extend_from_slice(&[
+            Vertex { position: [x,     y,     0.0], tex_coords: [0.0, 0.0] },
+            Vertex { position: [x + w, y,     0.0], tex_coords: [1.0, 0.0] },
+            Vertex { position: [x + w, y + h, 0.0], tex_coords: [1.0, 1.0] },
+            Vertex { position: [x,     y + h, 0.0], tex_coords: [0.0, 1.0] },
+        ]);
+    }
+
+    pub fn draw_sprite_pulsing_keyed(
+        &mut self, batch_key: &str, texture_name: &str,
+        x: f32, y: f32, w: f32, h: f32,
+    ) {
+        self.batch_texture_map.insert(batch_key.to_string(), texture_name.to_string());
+        let batch = self.pulse_batches.entry(batch_key.to_string()).or_default();
+        batch.extend_from_slice(&[
+            Vertex { position: [x,     y,     0.0], tex_coords: [0.0, 0.0] },
+            Vertex { position: [x + w, y,     0.0], tex_coords: [1.0, 0.0] },
+            Vertex { position: [x + w, y + h, 0.0], tex_coords: [1.0, 1.0] },
+            Vertex { position: [x,     y + h, 0.0], tex_coords: [0.0, 1.0] },
+        ]);
+    }
+
+    // ── UI layer ───────────────────────────────────────────────────────────
 
     pub fn draw_sprite_ui(&mut self, texture_name: &str, x: f32, y: f32, w: f32, h: f32) {
         let batch = self.ui_batches.entry(texture_name.to_string()).or_default();
         batch.extend_from_slice(&[
-            Vertex {
-                position: [x, y, 0.0],
-                tex_coords: [0.0, 0.0],
-            },
-            Vertex {
-                position: [x + w, y, 0.0],
-                tex_coords: [1.0, 0.0],
-            },
-            Vertex {
-                position: [x + w, y + h, 0.0],
-                tex_coords: [1.0, 1.0],
-            },
-            Vertex {
-                position: [x, y + h, 0.0],
-                tex_coords: [0.0, 1.0],
-            },
+            Vertex { position: [x,     y,     0.0], tex_coords: [0.0, 0.0] },
+            Vertex { position: [x + w, y,     0.0], tex_coords: [1.0, 0.0] },
+            Vertex { position: [x + w, y + h, 0.0], tex_coords: [1.0, 1.0] },
+            Vertex { position: [x,     y + h, 0.0], tex_coords: [0.0, 1.0] },
         ]);
     }
 
     pub fn draw_sprite_ui_keyed(
-        &mut self,
-        batch_key: &str,
-        texture_name: &str,
-        x: f32,
-        y: f32,
-        w: f32,
-        h: f32,
+        &mut self, batch_key: &str, texture_name: &str,
+        x: f32, y: f32, w: f32, h: f32,
     ) {
-        self.batch_texture_map
-            .insert(batch_key.to_string(), texture_name.to_string());
+        self.batch_texture_map.insert(batch_key.to_string(), texture_name.to_string());
         let batch = self.ui_batches.entry(batch_key.to_string()).or_default();
         batch.extend_from_slice(&[
-            Vertex {
-                position: [x, y, 0.0],
-                tex_coords: [0.0, 0.0],
-            },
-            Vertex {
-                position: [x + w, y, 0.0],
-                tex_coords: [1.0, 0.0],
-            },
-            Vertex {
-                position: [x + w, y + h, 0.0],
-                tex_coords: [1.0, 1.0],
-            },
-            Vertex {
-                position: [x, y + h, 0.0],
-                tex_coords: [0.0, 1.0],
-            },
+            Vertex { position: [x,     y,     0.0], tex_coords: [0.0, 0.0] },
+            Vertex { position: [x + w, y,     0.0], tex_coords: [1.0, 0.0] },
+            Vertex { position: [x + w, y + h, 0.0], tex_coords: [1.0, 1.0] },
+            Vertex { position: [x,     y + h, 0.0], tex_coords: [0.0, 1.0] },
         ]);
     }
 
     pub fn draw_sprite_frame_ui(
-        &mut self,
-        texture_name: &str,
-        x: f32,
-        y: f32,
-        draw_w: f32,
-        draw_h: f32,
-        frame_col: usize,
-        frame_row: usize,
-        frame_w: f32,
-        frame_h: f32,
-        texture_w: f32,
-        texture_h: f32,
+        &mut self, texture_name: &str,
+        x: f32, y: f32, draw_w: f32, draw_h: f32,
+        frame_col: usize, frame_row: usize,
+        frame_w: f32, frame_h: f32, texture_w: f32, texture_h: f32,
     ) {
         let u0 = (frame_col as f32 * frame_w) / texture_w;
         let u1 = u0 + frame_w / texture_w;
@@ -547,64 +451,30 @@ impl Renderer {
         let v1 = v0 + frame_h / texture_h;
         let batch = self.ui_batches.entry(texture_name.to_string()).or_default();
         batch.extend_from_slice(&[
-            Vertex {
-                position: [x, y, 0.0],
-                tex_coords: [u0, v0],
-            },
-            Vertex {
-                position: [x + draw_w, y, 0.0],
-                tex_coords: [u1, v0],
-            },
-            Vertex {
-                position: [x + draw_w, y + draw_h, 0.0],
-                tex_coords: [u1, v1],
-            },
-            Vertex {
-                position: [x, y + draw_h, 0.0],
-                tex_coords: [u0, v1],
-            },
+            Vertex { position: [x,          y,          0.0], tex_coords: [u0, v0] },
+            Vertex { position: [x + draw_w, y,          0.0], tex_coords: [u1, v0] },
+            Vertex { position: [x + draw_w, y + draw_h, 0.0], tex_coords: [u1, v1] },
+            Vertex { position: [x,          y + draw_h, 0.0], tex_coords: [u0, v1] },
         ]);
     }
 
     pub fn draw_sprite_frame_ui_keyed(
-        &mut self,
-        batch_key: &str,
-        texture_name: &str,
-        x: f32,
-        y: f32,
-        draw_w: f32,
-        draw_h: f32,
-        frame_col: usize,
-        frame_row: usize,
-        frame_w: f32,
-        frame_h: f32,
-        texture_w: f32,
-        texture_h: f32,
+        &mut self, batch_key: &str, texture_name: &str,
+        x: f32, y: f32, draw_w: f32, draw_h: f32,
+        frame_col: usize, frame_row: usize,
+        frame_w: f32, frame_h: f32, texture_w: f32, texture_h: f32,
     ) {
-        self.batch_texture_map
-            .insert(batch_key.to_string(), texture_name.to_string());
+        self.batch_texture_map.insert(batch_key.to_string(), texture_name.to_string());
         let u0 = (frame_col as f32 * frame_w) / texture_w;
         let u1 = u0 + frame_w / texture_w;
         let v0 = (frame_row as f32 * frame_h) / texture_h;
         let v1 = v0 + frame_h / texture_h;
         let batch = self.ui_batches.entry(batch_key.to_string()).or_default();
         batch.extend_from_slice(&[
-            Vertex {
-                position: [x, y, 0.0],
-                tex_coords: [u0, v0],
-            },
-            Vertex {
-                position: [x + draw_w, y, 0.0],
-                tex_coords: [u1, v0],
-            },
-            Vertex {
-                position: [x + draw_w, y + draw_h, 0.0],
-                tex_coords: [u1, v1],
-            },
-            Vertex {
-                position: [x, y + draw_h, 0.0],
-                tex_coords: [u0, v1],
-            },
+            Vertex { position: [x,          y,          0.0], tex_coords: [u0, v0] },
+            Vertex { position: [x + draw_w, y,          0.0], tex_coords: [u1, v0] },
+            Vertex { position: [x + draw_w, y + draw_h, 0.0], tex_coords: [u1, v1] },
+            Vertex { position: [x,          y + draw_h, 0.0], tex_coords: [u0, v1] },
         ]);
     }
 
@@ -615,7 +485,7 @@ impl Renderer {
     pub fn render(
         &mut self,
         engine: &crate::engine::engine::Engine,
-        dt: f32,
+        time: f32,
     ) -> anyhow::Result<()> {
         if !engine.is_surface_configured {
             return Ok(());
@@ -623,16 +493,12 @@ impl Renderer {
 
         self.camera_uniform.update(&self.camera);
         engine.queue.write_buffer(
-            &self.camera_buffer,
-            0,
+            &self.camera_buffer, 0,
             bytemuck::cast_slice(&[self.camera_uniform]),
         );
 
-        self.time += dt;
-        let time_data: [f32; 4] = [self.time, 0.0, 0.0, 0.0];
-        engine
-            .queue
-            .write_buffer(&self.time_buffer, 0, bytemuck::cast_slice(&time_data));
+        let time_data: [f32; 4] = [time, 0.0, 0.0, 0.0];
+        engine.queue.write_buffer(&self.time_buffer, 0, bytemuck::cast_slice(&time_data));
 
         let output = match engine.surface.get_current_texture() {
             wgpu::CurrentSurfaceTexture::Success(t) => t,
@@ -650,14 +516,10 @@ impl Renderer {
             wgpu::CurrentSurfaceTexture::Lost => anyhow::bail!("Lost device"),
         };
 
-        let view = output
-            .texture
-            .create_view(&wgpu::TextureViewDescriptor::default());
-        let mut encoder = engine
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: Some("Render Encoder"),
-            });
+        let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
+        let mut encoder = engine.device.create_command_encoder(
+            &wgpu::CommandEncoderDescriptor { label: Some("Render Encoder") },
+        );
 
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -666,12 +528,7 @@ impl Renderer {
                     view: &view,
                     resolve_target: None,
                     ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color {
-                            r: 0.1,
-                            g: 0.0,
-                            b: 0.0,
-                            a: 1.0,
-                        }),
+                        load: wgpu::LoadOp::Clear(wgpu::Color { r: 0.1, g: 0.0, b: 0.0, a: 1.0 }),
                         store: wgpu::StoreOp::Store,
                     },
                     depth_slice: None,
@@ -683,66 +540,74 @@ impl Renderer {
             });
 
             let mut all_vertices: Vec<Vertex> = Vec::new();
-            let mut draw_calls: Vec<(String, u32, u32)> = Vec::new();
 
-            // World layer first: tiles, objects, player
-            for (key, vertices) in self.world_batches.drain(..) {
-                let num_sprites = vertices.len() / 4;
-                if num_sprites == 0 {
-                    continue;
-                }
-                let base_vertex = all_vertices.len() as u32;
+            let mut pulse_calls: Vec<(String, u32, u32)> = Vec::new();
+            for (key, vertices) in self.pulse_batches.drain(..) {
+                let num = vertices.len() / 4;
+                if num == 0 { continue; }
+                let base = all_vertices.len() as u32;
                 all_vertices.extend_from_slice(&vertices);
-                draw_calls.push((key, base_vertex, num_sprites as u32));
+                pulse_calls.push((key, base, num as u32));
             }
 
-            // UI layer second: always on top
-            for (key, vertices) in self.ui_batches.drain(..) {
-                let num_sprites = vertices.len() / 4;
-                if num_sprites == 0 {
-                    continue;
-                }
-                let base_vertex = all_vertices.len() as u32;
+            let mut world_calls: Vec<(String, u32, u32)> = Vec::new();
+            for (key, vertices) in self.world_batches.drain(..) {
+                let num = vertices.len() / 4;
+                if num == 0 { continue; }
+                let base = all_vertices.len() as u32;
                 all_vertices.extend_from_slice(&vertices);
-                draw_calls.push((key, base_vertex, num_sprites as u32));
+                world_calls.push((key, base, num as u32));
+            }
+
+            let mut ui_calls: Vec<(String, u32, u32)> = Vec::new();
+            for (key, vertices) in self.ui_batches.drain(..) {
+                let num = vertices.len() / 4;
+                if num == 0 { continue; }
+                let base = all_vertices.len() as u32;
+                all_vertices.extend_from_slice(&vertices);
+                ui_calls.push((key, base, num as u32));
             }
 
             if !all_vertices.is_empty() {
                 engine.queue.write_buffer(
-                    &self.vertex_buffer,
-                    0,
+                    &self.vertex_buffer, 0,
                     bytemuck::cast_slice(&all_vertices),
                 );
             }
 
-            render_pass.set_pipeline(&self.pipeline);
             render_pass.set_bind_group(0, &self.camera_bind_group, &[]);
             render_pass.set_bind_group(2, &self.time_bind_group, &[]);
 
-            for (batch_key, base_vertex, num_sprites) in &draw_calls {
-                let real_tex = self
-                    .batch_texture_map
-                    .get(batch_key)
-                    .cloned()
-                    .unwrap_or_else(|| batch_key.clone());
-                let stored = match self.textures.get(&real_tex) {
-                    Some(s) => s,
-                    None => continue,
-                };
-                let byte_offset = *base_vertex as u64 * std::mem::size_of::<Vertex>() as u64;
-                render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(byte_offset..));
-                render_pass
-                    .set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
-                render_pass.set_bind_group(1, &stored.bind_group, &[]);
-                render_pass.draw_indexed(0..(num_sprites * 6), 0, 0..1);
-            }
+            render_pass.set_pipeline(&self.pipeline_pulse);
+            self.draw_batch(&mut render_pass, &pulse_calls);
+
+            render_pass.set_pipeline(&self.pipeline);
+            self.draw_batch(&mut render_pass, &world_calls);
+            self.draw_batch(&mut render_pass, &ui_calls);
 
             self.batch_texture_map.clear();
         }
 
         engine.queue.submit(std::iter::once(encoder.finish()));
         output.present();
-
         Ok(())
+    }
+
+    fn draw_batch(&self, render_pass: &mut wgpu::RenderPass, calls: &[(String, u32, u32)]) {
+        for (batch_key, base_vertex, num_sprites) in calls {
+            let real_tex = self.batch_texture_map
+                .get(batch_key)
+                .cloned()
+                .unwrap_or_else(|| batch_key.clone());
+            let stored = match self.textures.get(&real_tex) {
+                Some(s) => s,
+                None => continue,
+            };
+            let byte_offset = *base_vertex as u64 * std::mem::size_of::<Vertex>() as u64;
+            render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(byte_offset..));
+            render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+            render_pass.set_bind_group(1, &stored.bind_group, &[]);
+            render_pass.draw_indexed(0..(num_sprites * 6), 0, 0..1);
+        }
     }
 }

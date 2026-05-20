@@ -38,5 +38,17 @@ fn vs_main(model: VertexInput) -> VertexOutput {
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    return textureSample(t_diffuse, s_diffuse, in.tex_coords);
+    var color = textureSample(t_diffuse, s_diffuse, in.tex_coords);
+
+    let offset = in.clip_position.x * 0.003 + in.clip_position.y * 0.002;
+
+    // Brightness oscillates between 0.7 and 1.0 at ~2 beats per second
+    let pulse = 0.85 + 0.15 * sin(time_data.time * 2.0 + offset);
+
+    // Boost red, dim green and blue keeps it in blood-red territory
+    color.r = color.r * pulse;
+    color.g = color.g * (pulse * 0.6);
+    color.b = color.b * (pulse * 0.4);
+
+    return color;
 }

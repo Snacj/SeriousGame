@@ -87,13 +87,6 @@ pub fn load_sprites(engine: &Engine, renderer: &mut Renderer) {
     renderer.load_texture(
         &engine.device,
         &engine.queue,
-        "grass",
-        include_bytes!("../../assets/grass.png"),
-    );
-
-    renderer.load_texture(
-        &engine.device,
-        &engine.queue,
         "body_background",
         include_bytes!("../../assets/body_background_tile.png"),
     );

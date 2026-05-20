@@ -9,7 +9,7 @@ use crate::engine::renderer::Renderer;
 use crate::game::GameState;
 use crate::game::object::{Object, ObjectType};
 use crate::game::player::Player;
-use crate::game::tile::Tile;
+use crate::game::tile::{Tile, TileType};
 
 pub const TILE_SIZE: f32 = 16.0;
 pub const MAP_WIDTH: usize = 64;
@@ -62,7 +62,7 @@ impl MyGame {
             house_collision_box,
         ));
 
-        let map = map::load_map(include_bytes!("../../map/test_map.json"));
+        let map = map::load_map(include_bytes!("../../maps/testMap.json"));
         let mut collision_world = CollisionWorld::new();
 
         for row in &map {
@@ -148,11 +148,50 @@ impl MyGame {
         renderer.camera.position.y =
             self.player.y + TILE_SIZE / 2.0 - self.camera.logical_height / 2.0;
 
+        // Clamp Camera to map borders
+        let map_w = MAP_WIDTH as f32 * TILE_SIZE;
+        let map_h = MAP_HEIGHT as f32 * TILE_SIZE;
+        renderer.camera.position.x = renderer
+            .camera
+            .position
+            .x
+            .clamp(0.0, map_w - self.camera.logical_width);
+        renderer.camera.position.y = renderer
+            .camera
+            .position
+            .y
+            .clamp(0.0, map_h - self.camera.logical_height);
+
+        // Frustum Culling: Only render visible tiles (performance)
+        let cam_x = renderer.camera.position.x.max(0.0);
+        let cam_y = renderer.camera.position.y.max(0.0);
+
+        let tile_x0 = (cam_x / TILE_SIZE) as usize;
+        let tile_y0 = (cam_y / TILE_SIZE) as usize;
+        let tile_x1 = ((cam_x + self.camera.logical_width) / TILE_SIZE) as usize + 2;
+        let tile_y1 = ((cam_y + self.camera.logical_height) / TILE_SIZE) as usize + 2;
+
+        let tile_x0 = tile_x0.min(MAP_WIDTH.saturating_sub(1));
+        let tile_y0 = tile_y0.min(MAP_HEIGHT.saturating_sub(1));
+        let tile_x1 = tile_x1.min(MAP_WIDTH);
+        let tile_y1 = tile_y1.min(MAP_HEIGHT);
+
         // Ground always behind everything
-        for row in &self.map {
-            for tile in row {
+        for y in tile_y0..tile_y1 {
+            for x in tile_x0..tile_x1 {
+                let tile = &self.map[y][x];
                 if tile.tile_type.is_ground() {
-                    renderer.draw_sprite(tile.sprite_name(), tile.x, tile.y, tile.w, tile.h);
+                    if tile.tile_type == TileType::Body {
+                        renderer.draw_sprite_pulsing(
+                            tile.sprite_name(),
+                            tile.x,
+                            tile.y,
+                            tile.w,
+                            tile.h,
+                        );
+                    } else {
+                        renderer.draw_sprite(tile.sprite_name(), tile.x, tile.y, tile.w, tile.h);
+                    }
                 }
             }
         }
@@ -160,13 +199,15 @@ impl MyGame {
         // Y-sorted draw list
         let mut calls: Vec<(f32, DrawCall)> = Vec::new();
 
-        for (y, row) in self.map.iter().enumerate() {
-            for (x, tile) in row.iter().enumerate() {
+        for y in tile_y0..tile_y1 {
+            for x in tile_x0..tile_x1 {
+                let tile = &self.map[y][x];
                 if tile.tile_type.is_solid() {
                     calls.push((tile.y + tile.h, DrawCall::Tile(y, x)));
                 }
             }
         }
+
         for (i, object) in self.objects.iter().enumerate() {
             calls.push((object.feet_y(), DrawCall::Object(i)));
         }
@@ -178,27 +219,40 @@ impl MyGame {
                 DrawCall::Tile(row, col) => {
                     let tile = &self.map[*row][*col];
                     let key = format!("{}_{}", tile.sprite_name(), order);
-                    renderer.draw_sprite_keyed(
-                        &key,
-                        tile.sprite_name(),
-                        tile.x,
-                        tile.y,
-                        tile.w,
-                        tile.h,
-                    );
+
+                    if tile.tile_type == TileType::Obstacle {
+                        renderer.draw_sprite_pulsing_keyed(
+                            &key,
+                            tile.sprite_name(),
+                            tile.x,
+                            tile.y,
+                            tile.w,
+                            tile.h,
+                        );
+                    } else {
+                        renderer.draw_sprite_keyed(
+                            &key,
+                            tile.sprite_name(),
+                            tile.x,
+                            tile.y,
+                            tile.w,
+                            tile.h,
+                        );
+                    }
                 }
                 DrawCall::Object(i) => {
                     self.objects[*i].render_ordered(renderer, order, self.debug);
                 }
                 DrawCall::Player => {
-                    let show_prompt = show_ui && self.objects.iter().any(|obj| {
-                        obj.interaction.is_some()
-                            && obj.is_near(
-                                self.player.x,
-                                self.player.y,
-                                crate::game::player::INTERACT_RANGE,
-                            )
-                    });
+                    let show_prompt = show_ui
+                        && self.objects.iter().any(|obj| {
+                            obj.interaction.is_some()
+                                && obj.is_near(
+                                    self.player.x,
+                                    self.player.y,
+                                    crate::game::player::INTERACT_RANGE,
+                                )
+                        });
 
                     self.player.render_ordered(
                         renderer,

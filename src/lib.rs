@@ -38,6 +38,7 @@ pub struct App {
     input: Input,
     last_frame: Instant,
     accumulator: f32,
+    game_time: f32,
 }
 
 impl App {
@@ -51,6 +52,7 @@ impl App {
             input: Input::new(),
             last_frame: Instant::now(),
             accumulator: 0.0,
+            game_time: 0.0,
             #[cfg(target_arch = "wasm32")]
             proxy,
         }
@@ -159,6 +161,7 @@ impl ApplicationHandler<Initialized> for App {
                 self.accumulator += frame_time;
 
                 while self.accumulator >= FIXED_DT {
+                    self.game_time += FIXED_DT;
                     if let Some(transition) = state.update(&self.input, FIXED_DT) {
                         *state = transition;
                     }
@@ -168,7 +171,7 @@ impl ApplicationHandler<Initialized> for App {
 
                 state.render(renderer);
 
-                match renderer.render(engine, FIXED_DT) {
+                match renderer.render(engine, self.game_time) {
                     Ok(_) => {}
                     Err(e) => {
                         log::error!("{e}");
