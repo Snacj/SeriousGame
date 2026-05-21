@@ -12,6 +12,7 @@ pub trait Minigame {
     fn on_resize(&mut self, w: f32, h: f32);
 }
 
+#[allow(unused)]
 pub struct MinigameOutcome {
     pub won: bool,
     pub score: u32,
@@ -21,6 +22,7 @@ pub struct MinigameOutcome {
     pub fact: &'static str,
 }
 
+#[allow(unused)]
 pub struct PlaceholderMinigame {
     pub title: &'static str,
     timer: f32,

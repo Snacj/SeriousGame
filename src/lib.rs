@@ -23,10 +23,12 @@ use engine::input::Input;
 use engine::renderer::Renderer;
 use game::GameState;
 
+use crate::game::GameContext;
+
 struct Initialized {
     engine: Engine,
     renderer: Renderer,
-    state: GameState,
+    state: GameContext,
 }
 
 pub struct App {
@@ -34,7 +36,7 @@ pub struct App {
     proxy: Option<winit::event_loop::EventLoopProxy<Initialized>>,
     engine: Option<Engine>,
     renderer: Option<Renderer>,
-    state: Option<GameState>,
+    state: Option<GameContext>,
     input: Input,
     last_frame: Instant,
     accumulator: f32,
@@ -87,7 +89,7 @@ impl ApplicationHandler<Initialized> for App {
             let (sw, sh) = engine.screen_size();
             renderer.resize(sw, sh);
 
-            let state = GameState::init(&engine, &mut renderer);
+            let state = GameContext::init(&engine, &mut renderer);
 
             self.engine = Some(engine);
             self.renderer = Some(renderer);
@@ -162,9 +164,7 @@ impl ApplicationHandler<Initialized> for App {
 
                 while self.accumulator >= FIXED_DT {
                     self.game_time += FIXED_DT;
-                    if let Some(transition) = state.update(&self.input, FIXED_DT) {
-                        *state = transition;
-                    }
+                    state.update(&self.input, FIXED_DT);
                     self.input.begin_frame();
                     self.accumulator -= FIXED_DT;
                 }

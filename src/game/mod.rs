@@ -16,6 +16,58 @@ pub mod object;
 pub mod player;
 pub mod tile;
 
+pub struct GameContext {
+    pub state: GameState,
+    pub health: f32,
+}
+
+impl GameContext {
+    pub fn init(engine: &Engine, renderer: &mut Renderer) -> Self {
+        Self {
+            state: GameState::init(engine, renderer),
+            health: 0.3,
+        }
+    }
+
+    pub fn update(&mut self, input: &Input, dt: f32) {
+        if let Some((next, delta)) = self.state.update(input, dt) {
+            self.state = next;
+            self.health = (self.health + delta).clamp(0.0, 1.0);
+        }
+
+        if input.is_just_pressed(KeyCode::F12) {
+            self.health = 1.0;
+        }
+
+        if self.health >= 1.0 && !matches!(self.state, GameState::Won) {
+            self.state = GameState::Won;
+        }
+
+    }
+
+    pub fn render(&self, renderer: &mut Renderer) {
+        self.state.render(renderer);
+        if !self.state.is_main_menu() && !matches!(self.state, GameState::Won) {
+            Self::render_health_bar(renderer, self.health);
+        }
+    }
+
+    pub fn on_resize(&mut self, w: f32, h: f32) {
+        self.state.on_resize(w, h);
+    }
+
+    fn render_health_bar(renderer: &mut Renderer, health: f32) {
+        let cam_x = renderer.camera.position.x;
+        let cam_y = renderer.camera.position.y;
+        let bar_x = cam_x + 6.0;
+        let bar_y = cam_y + 12.0;
+        let bar_w = 80.0;
+        let bar_h = 5.0;
+        renderer.draw_sprite_ui("debug_red", bar_x, bar_y, bar_w, bar_h);
+        renderer.draw_sprite_ui("health_green", bar_x, bar_y, bar_w * health, bar_h);
+    }
+}
+
 pub enum GameState {
     MainMenu(MainMenu),
     Playing(MyGame),
@@ -40,6 +92,8 @@ pub enum GameState {
         game: MyGame,
         outcome: MinigameOutcome,
     },
+
+    Won,
 }
 
 impl GameState {
@@ -49,11 +103,11 @@ impl GameState {
         GameState::MainMenu(MainMenu::new(sw, sh))
     }
 
-    pub fn update(&mut self, input: &Input, dt: f32) -> Option<GameState> {
+    pub fn update(&mut self, input: &Input, dt: f32) -> Option<(GameState, f32)> {
         match self {
-            GameState::MainMenu(menu) => menu.update(input),
-            GameState::Playing(game) => game.update(input, dt),
-            GameState::Paused(game) => game.update_paused(input),
+            GameState::MainMenu(menu) => menu.update(input).map(|s| (s, 0.0)),
+            GameState::Playing(game) => game.update(input, dt).map(|s| (s, 0.0)),
+            GameState::Paused(game) => game.update_paused(input).map(|s| (s, 0.0)),
 
             GameState::Dialogue { game, data, .. } => {
                 if input.is_just_pressed(KeyCode::Enter) {
@@ -70,7 +124,7 @@ impl GameState {
                         let game = std::mem::replace(game, MyGame::new(0.0, 0.0));
                         GameState::Playing(game)
                     };
-                    return Some(next);
+                    return Some((next, 0.0));
                 }
                 None
             }
@@ -90,7 +144,7 @@ impl GameState {
                         fact: outcome_fact,
                     };
                     let game = std::mem::replace(game, MyGame::new(0.0, 0.0));
-                    Some(GameState::Results { game, outcome })
+                    Some((GameState::Results { game, outcome }, 0.0))
                 }
                 MinigameResult::Lost => {
                     let outcome = MinigameOutcome {
@@ -100,14 +154,22 @@ impl GameState {
                         fact: outcome_fact,
                     };
                     let game = std::mem::replace(game, MyGame::new(0.0, 0.0));
-                    Some(GameState::Results { game, outcome })
+                    Some((GameState::Results { game, outcome }, 0.0))
                 }
             },
 
             GameState::Results { game, outcome } => {
                 if input.is_just_pressed(KeyCode::Enter) || input.is_just_pressed(KeyCode::Space) {
+                    let delta = if outcome.won { 0.2 } else { -0.1 };
                     let game = std::mem::replace(game, MyGame::new(0.0, 0.0));
-                    return Some(GameState::Playing(game));
+                    return Some((GameState::Playing(game), delta));
+                }
+                None
+            }
+
+            GameState::Won => {
+                if input.is_just_pressed(KeyCode::Enter) || input.is_just_pressed(KeyCode::Space) {
+                    return Some((GameState::MainMenu(MainMenu::new(0.0, 0.0)), 0.0));
                 }
                 None
             }
@@ -171,6 +233,41 @@ impl GameState {
                     0.5,
                 );
             }
+            GameState::Won => {
+                let cam_x = renderer.camera.position.x;
+                let cam_y = renderer.camera.position.y;
+                let cam_w = renderer.camera.logical_width;
+                let cam_h = renderer.camera.logical_height;
+                let cx = cam_x + cam_w / 2.0;
+                let cy = cam_y + cam_h / 2.0;
+
+                renderer.draw_sprite_ui("transparent_gray", cam_x, cam_y, cam_w, cam_h);
+                let font = crate::engine::font::Font::new("font");
+                let text = "BODY HEALED";
+                font.draw_ui(
+                    renderer,
+                    text,
+                    cx - font.measure(text, 1.0) / 2.0,
+                    cy - 20.0,
+                    1.0,
+                );
+                    let text = "THE PATIENT RECOVERED";
+                font.draw_ui(
+                    renderer,
+                    text,
+                    cx - font.measure(text, 0.5) / 2.0,
+                    cy,
+                    0.5,
+                );
+                let text = "We hope you enjoyed the Game!";
+                font.draw_ui(
+                    renderer,
+                    text,
+                    cx - font.measure(text, 0.5) / 2.0,
+                    cy + 16.0,
+                    0.5,
+                );
+            }
         }
     }
 
@@ -185,6 +282,7 @@ impl GameState {
                 minigame.on_resize(w, h);
             }
             GameState::Results { game, .. } => game.on_resize(w, h),
+            GameState::Won => {},
         }
     }
 
@@ -196,6 +294,10 @@ impl GameState {
             renderer.camera.logical_width,
             renderer.camera.logical_height,
         );
+    }
+
+    pub fn is_main_menu(&self) -> bool {
+        matches!(self, GameState::MainMenu(_))
     }
 }
 

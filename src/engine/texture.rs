@@ -148,6 +148,7 @@ pub fn load_sprites(engine: &Engine, renderer: &mut Renderer) {
     );
 
     renderer.create_solid_texture(&engine.device, &engine.queue, "debug_red", [255, 0, 0, 100]);
+    renderer.create_solid_texture(&engine.device, &engine.queue, "health_green", [0, 200, 0, 100]);
     renderer.create_solid_texture(
         &engine.device,
         &engine.queue,

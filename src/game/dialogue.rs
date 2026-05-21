@@ -54,7 +54,8 @@ impl DialogueBox {
         let box_w = cam_w - padding * 2.0;
         let line_h = 8.0; // space between lines at scale 0.6
         let num_lines = data.lines.len() as f32;
-        let box_h = 18.0              // title area
+        let title_h = 22.0;
+        let box_h = title_h              // title area
             + (num_lines * line_h)    // body lines
             + 12.0; // hint line + bottom padding
 
@@ -69,14 +70,14 @@ impl DialogueBox {
             box_y,
             box_w,
             box_h,
-            320.0,
-            180.0,
-            16.0,
+            24.0,
+            24.0,
+            8.0,
         );
 
         // Title
         self.font
-            .draw_ui(renderer, data.title, box_x + padding, box_y + padding, 0.7);
+            .draw_ui(renderer, data.title, box_x + padding, box_y + padding, 0.8);
 
         // Body lines
         for (i, line) in data.lines.iter().enumerate() {
@@ -84,7 +85,7 @@ impl DialogueBox {
                 renderer,
                 line,
                 box_x + padding,
-                box_y + 14.0 + i as f32 * line_h,
+                box_y + title_h + i as f32 * line_h,
                 0.6,
             );
         }
