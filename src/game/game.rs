@@ -18,7 +18,7 @@ pub const MAP_HEIGHT: usize = 64;
 pub struct MyGame {
     pub camera: Camera,
     font: Font,
-    objects: Vec<Object>,
+    pub objects: Vec<Object>,
     player: Player,
     map: [[Tile; MAP_WIDTH]; MAP_HEIGHT],
     collision_world: CollisionWorld,
@@ -246,6 +246,7 @@ impl MyGame {
                 DrawCall::Player => {
                     let show_prompt = show_ui
                         && self.objects.iter().any(|obj| {
+                            !obj.completed &&
                             obj.interaction.is_some()
                                 && obj.is_near(
                                     self.player.x,
@@ -272,6 +273,26 @@ impl MyGame {
 
     pub fn on_resize(&mut self, width: f32, height: f32) {
         self.camera.update_aspect_ratio(width, height);
+    }
+
+    pub fn rebuild_collision_map(&mut self) {
+        self.collision_world.clear();
+
+        for row in &self.map {
+            for tile in row {
+                if tile.tile_type.is_solid() {
+                    self.collision_world.add(Rect::new(tile.x, tile.y, tile.w, tile.h));
+                }
+            }
+        }
+
+        for object in &self.objects {
+            if !object.completed {
+                let rect = object.collision_box.world_rect(object.x, object.y);
+                self.collision_world.add(rect);
+            }
+        }
+
     }
 
     fn draw_fps(&self, renderer: &mut Renderer) {

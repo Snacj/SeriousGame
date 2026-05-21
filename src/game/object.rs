@@ -64,6 +64,7 @@ pub struct Object {
     pub object_type: ObjectType,
     pub collision_box: CollisionBox,
     pub interaction: Option<DialogueData>,
+    pub completed: bool,
 }
 
 impl Object {
@@ -84,6 +85,7 @@ impl Object {
             object_type,
             collision_box,
             interaction,
+            completed: false,
         }
     }
 
@@ -93,6 +95,7 @@ impl Object {
 
     /// Returns true if the player is close enough to interact.
     pub fn is_near(&self, player_x: f32, player_y: f32, range: f32) -> bool {
+        if self.completed { return false }
         let cx = self.x + self.w / 2.0;
         let cy = self.y + self.h / 2.0;
         let dx = player_x - cx;
@@ -101,10 +104,12 @@ impl Object {
     }
 
     pub fn render(&self, renderer: &mut Renderer) {
+        if self.completed { return; }
         renderer.draw_sprite(self.object_name(), self.x, self.y, self.w, self.h);
     }
 
     pub fn render_ordered(&self, renderer: &mut Renderer, order: usize, debug: bool) {
+        if self.completed { return; }
         let key = format!("{}_{}", self.object_name(), order);
         renderer.draw_sprite_keyed(&key, self.object_name(), self.x, self.y, self.w, self.h);
 

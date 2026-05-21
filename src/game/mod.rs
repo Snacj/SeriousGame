@@ -42,7 +42,6 @@ impl GameContext {
         if self.health >= 1.0 && !matches!(self.state, GameState::Won) {
             self.state = GameState::Won;
         }
-
     }
 
     pub fn render(&self, renderer: &mut Renderer) {
@@ -85,6 +84,7 @@ pub enum GameState {
         minigame: Box<dyn Minigame>,
         outcome_title: &'static str,
         outcome_fact: &'static str,
+        object_index: Option<usize>,
     },
 
     /// Win/lose screen shown after a minigame ends.
@@ -114,11 +114,21 @@ impl GameState {
                     let next = if let Some(trigger) = data.minigame {
                         let (minigame, title, fact) = make_minigame(trigger);
                         let game = std::mem::replace(game, MyGame::new(0.0, 0.0));
+                        let object_index = game.objects.iter().position(|obj| {
+                            obj.interaction
+                                .as_ref()
+                                .and_then(|i| i.minigame)
+                                .map(|t| {
+                                    std::mem::discriminant(&t) == std::mem::discriminant(&trigger)
+                                })
+                                .unwrap_or(false)
+                        });
                         GameState::Minigame {
                             game,
                             minigame,
                             outcome_title: title,
                             outcome_fact: fact,
+                            object_index,
                         }
                     } else {
                         let game = std::mem::replace(game, MyGame::new(0.0, 0.0));
@@ -134,6 +144,7 @@ impl GameState {
                 minigame,
                 outcome_title,
                 outcome_fact,
+                object_index,
             } => match minigame.update(input, dt) {
                 MinigameResult::Running => None,
                 MinigameResult::Won { score } => {
@@ -142,6 +153,7 @@ impl GameState {
                         score,
                         title: outcome_title,
                         fact: outcome_fact,
+                        object_index: *object_index,
                     };
                     let game = std::mem::replace(game, MyGame::new(0.0, 0.0));
                     Some((GameState::Results { game, outcome }, 0.0))
@@ -152,6 +164,7 @@ impl GameState {
                         score: 0,
                         title: outcome_title,
                         fact: outcome_fact,
+                        object_index: *object_index,
                     };
                     let game = std::mem::replace(game, MyGame::new(0.0, 0.0));
                     Some((GameState::Results { game, outcome }, 0.0))
@@ -161,6 +174,14 @@ impl GameState {
             GameState::Results { game, outcome } => {
                 if input.is_just_pressed(KeyCode::Enter) || input.is_just_pressed(KeyCode::Space) {
                     let delta = if outcome.won { 0.2 } else { -0.1 };
+
+                    if outcome.won {
+                        if let Some(idx) = outcome.object_index {
+                            game.objects[idx].completed = true;
+                            game.rebuild_collision_map();
+                        }
+                    }
+
                     let game = std::mem::replace(game, MyGame::new(0.0, 0.0));
                     return Some((GameState::Playing(game), delta));
                 }
@@ -251,14 +272,8 @@ impl GameState {
                     cy - 20.0,
                     1.0,
                 );
-                    let text = "THE PATIENT RECOVERED";
-                font.draw_ui(
-                    renderer,
-                    text,
-                    cx - font.measure(text, 0.5) / 2.0,
-                    cy,
-                    0.5,
-                );
+                let text = "THE PATIENT RECOVERED";
+                font.draw_ui(renderer, text, cx - font.measure(text, 0.5) / 2.0, cy, 0.5);
                 let text = "We hope you enjoyed the Game!";
                 font.draw_ui(
                     renderer,
@@ -282,7 +297,7 @@ impl GameState {
                 minigame.on_resize(w, h);
             }
             GameState::Results { game, .. } => game.on_resize(w, h),
-            GameState::Won => {},
+            GameState::Won => {}
         }
     }
 

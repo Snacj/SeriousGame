@@ -16,10 +16,9 @@ pub trait Minigame {
 pub struct MinigameOutcome {
     pub won: bool,
     pub score: u32,
-
     pub title: &'static str,
-
     pub fact: &'static str,
+    pub object_index: Option<usize>,
 }
 
 #[allow(unused)]
