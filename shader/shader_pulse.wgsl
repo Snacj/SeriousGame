@@ -26,6 +26,7 @@ struct VertexInput {
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
     @location(0) tex_coords: vec2<f32>,
+    @location(1) world_pos: vec2<f32>,
 };
 
 @vertex
@@ -33,6 +34,7 @@ fn vs_main(model: VertexInput) -> VertexOutput {
     var out: VertexOutput;
     out.clip_position = camera.proj_view * vec4<f32>(model.position, 1.0);
     out.tex_coords = model.tex_coords;
+    out.world_pos = model.position.xy;
     return out;
 }
 
@@ -40,12 +42,12 @@ fn vs_main(model: VertexInput) -> VertexOutput {
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     var color = textureSample(t_diffuse, s_diffuse, in.tex_coords);
 
-    let offset = in.clip_position.x * 0.003 + in.clip_position.y * 0.002;
+    let tile_x = floor(in.world_pos.x / 16.0);
+    let tile_y = floor(in.world_pos.y / 16.0);
 
-    // Brightness oscillates between 0.7 and 1.0 at ~2 beats per second
-    let pulse = 0.85 + 0.15 * sin(time_data.time * 2.0 + offset);
+    let hash = fract(tile_x * 0.1731 + tile_y * 0.3491 + tile_x * tile_y * 0.0071);
+    let pulse = 0.85 + 0.15 * sin(time_data.time * 2.0 + hash * 6.2832);
 
-    // Boost red, dim green and blue keeps it in blood-red territory
     color.r = color.r * pulse;
     color.g = color.g * (pulse * 0.6);
     color.b = color.b * (pulse * 0.4);
