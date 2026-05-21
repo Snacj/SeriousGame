@@ -7,6 +7,7 @@ pub struct DialogueData {
     pub minigame: Option<MinigameTrigger>,
 }
 
+#[allow(unused)]
 #[derive(Debug, Clone, Copy)]
 pub enum MinigameTrigger {
     CatchVirus,
@@ -55,23 +56,27 @@ impl DialogueBox {
         let num_lines = data.lines.len() as f32;
         let box_h = 18.0              // title area
             + (num_lines * line_h)    // body lines
-            + 12.0;                   // hint line + bottom padding
+            + 12.0; // hint line + bottom padding
 
         // Pin to bottom of screen
         let box_x = cam_x + padding;
         let box_y = cam_y + cam_h - box_h - padding;
 
-        renderer.draw_sprite_ui("ui_panel", box_x, box_y, box_w, box_h);
-        // renderer.draw_sprite("dialogue_background", box_x, box_y, box_w, box_h);
+        draw_9slice(
+            renderer,
+            "dialogue_background",
+            box_x,
+            box_y,
+            box_w,
+            box_h,
+            320.0,
+            180.0,
+            16.0,
+        );
 
         // Title
-        self.font.draw_ui(
-            renderer,
-            data.title,
-            box_x + padding,
-            box_y + padding,
-            0.7,
-        );
+        self.font
+            .draw_ui(renderer, data.title, box_x + padding, box_y + padding, 0.7);
 
         // Body lines
         for (i, line) in data.lines.iter().enumerate() {
@@ -86,7 +91,7 @@ impl DialogueBox {
 
         // Hint
         let hint = if data.minigame.is_some() {
-            "SPACE START MINIGAME"
+            "ENTER TO START MINIGAME"
         } else {
             "ENTER TO CLOSE"
         };
@@ -101,3 +106,86 @@ impl DialogueBox {
     }
 }
 
+fn draw_9slice(
+    renderer: &mut Renderer,
+    texture: &str,
+    x: f32,
+    y: f32,
+    w: f32,
+    h: f32,
+    tex_w: f32,
+    tex_h: f32,
+    corner: f32,
+) {
+    // Corners don't stretch
+    let c = corner;
+
+    // Top-left corner
+    renderer.draw_sprite_frame_ui(texture, x, y, c, c, 0, 0, c, c, tex_w, tex_h);
+    // Top-right corner
+    renderer.draw_sprite_frame_ui(texture, x + w - c, y, c, c, 2, 0, c, c, tex_w, tex_h);
+    // Bottom-left corner
+    renderer.draw_sprite_frame_ui(texture, x, y + h - c, c, c, 0, 2, c, c, tex_w, tex_h);
+    // Bottom-right corner
+    renderer.draw_sprite_frame_ui(
+        texture,
+        x + w - c,
+        y + h - c,
+        c,
+        c,
+        2,
+        2,
+        c,
+        c,
+        tex_w,
+        tex_h,
+    );
+
+    // Top edge stretches horizontally
+    renderer.draw_sprite_frame_ui(texture, x + c, y, w - c * 2.0, c, 1, 0, c, c, tex_w, tex_h);
+    // Bottom edge stretches horizontally
+    renderer.draw_sprite_frame_ui(
+        texture,
+        x + c,
+        y + h - c,
+        w - c * 2.0,
+        c,
+        1,
+        2,
+        c,
+        c,
+        tex_w,
+        tex_h,
+    );
+    // Left edge stretches vertically
+    renderer.draw_sprite_frame_ui(texture, x, y + c, c, h - c * 2.0, 0, 1, c, c, tex_w, tex_h);
+    // Right edge stretches vertically
+    renderer.draw_sprite_frame_ui(
+        texture,
+        x + w - c,
+        y + c,
+        c,
+        h - c * 2.0,
+        2,
+        1,
+        c,
+        c,
+        tex_w,
+        tex_h,
+    );
+
+    // Center stretches both ways
+    renderer.draw_sprite_frame_ui(
+        texture,
+        x + c,
+        y + c,
+        w - c * 2.0,
+        h - c * 2.0,
+        1,
+        1,
+        c,
+        c,
+        tex_w,
+        tex_h,
+    );
+}

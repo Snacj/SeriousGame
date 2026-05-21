@@ -104,12 +104,7 @@ impl Object {
         renderer.draw_sprite(self.object_name(), self.x, self.y, self.w, self.h);
     }
 
-    pub fn render_ordered(
-        &self,
-        renderer: &mut Renderer,
-        order: usize,
-        debug: bool,
-    ) {
+    pub fn render_ordered(&self, renderer: &mut Renderer, order: usize, debug: bool) {
         let key = format!("{}_{}", self.object_name(), order);
         renderer.draw_sprite_keyed(&key, self.object_name(), self.x, self.y, self.w, self.h);
 

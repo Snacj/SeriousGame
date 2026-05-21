@@ -1,4 +1,40 @@
 {
+    "activeFile": "../maps/testMap.tmx",
+    "expandedProjectPaths": [
+        "."
+    ],
+    "fileStates": {
+        "": {
+            "scaleInDock": 1
+        },
+        "../maps/testMap.tmx": {
+            "scale": 1,
+            "selectedLayer": 1,
+            "viewCenter": {
+                "x": 852,
+                "y": 487
+            }
+        },
+        "../maps/testMap.tmx#body-tileset": {
+            "scaleInDock": 1
+        },
+        "../maps/testMap.tmx#body-tileset-solid": {
+            "scaleInDock": 1
+        },
+        "Body.tsx": {
+            "dynamicWrapping": true,
+            "scaleInDock": 1,
+            "scaleInEditor": 1
+        }
+    },
     "last.exportedFilePath": "/home/snacj/Dev/rust/serious_games/maps",
-    "map.lastUsedExportFilter": "All Files (*)"
+    "map.lastUsedExportFilter": "All Files (*)",
+    "openFiles": [
+        "../maps/testMap.tmx"
+    ],
+    "project": "serious_games.tiled-project",
+    "recentFiles": [
+        "../maps/testMap.tmx",
+        "Body.tsx"
+    ]
 }

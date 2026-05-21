@@ -37,11 +37,11 @@ pub enum TileType {
 impl TileType {
     pub fn sprite_name(&self) -> &'static str {
         match self {
-            TileType::Body     => "body_background",
+            TileType::Body => "body_background",
             TileType::Obstacle => "body_obstacle",
-            TileType::Grass    => "grass",
-            TileType::Tree     => "tree",
-            TileType::Stone    => "stone",
+            TileType::Grass => "grass",
+            TileType::Tree => "tree",
+            TileType::Stone => "stone",
         }
     }
 

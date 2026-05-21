@@ -1,6 +1,6 @@
-use serde::Deserialize;
+use crate::game::game::{MAP_HEIGHT, MAP_WIDTH, TILE_SIZE};
 use crate::game::tile::{Tile, TileType};
-use crate::game::game::{TILE_SIZE, MAP_WIDTH, MAP_HEIGHT};
+use serde::Deserialize;
 
 #[derive(Deserialize)]
 pub struct TiledMap {
@@ -45,14 +45,10 @@ impl TiledLayer {
 ///   is_ground: bool, tiles on this layer are drawn first, behind everything
 ///   is_solid:  bool, tiles on this layer block the player
 ///
-/// Layer 1 (ground):  is_ground = true,  is_solid = false  -> Body tiles
-/// Layer 2 (solid):   is_ground = true,  is_solid = true   -> Obstacle tiles
-///
 /// Tiles from later layers overwrite earlier layers at the same position,
 /// so solid tiles sit on top of ground tiles correctly.
 pub fn load_map(bytes: &[u8]) -> [[Tile; MAP_WIDTH]; MAP_HEIGHT] {
-    let tiled: TiledMap = serde_json::from_slice(bytes)
-        .expect("Failed to parse Tiled JSON map");
+    let tiled: TiledMap = serde_json::from_slice(bytes).expect("Failed to parse Tiled JSON map");
 
     let mut map = [[Tile::new(0.0, 0.0, TileType::Body); MAP_WIDTH]; MAP_HEIGHT];
 
@@ -68,7 +64,7 @@ pub fn load_map(bytes: &[u8]) -> [[Tile; MAP_WIDTH]; MAP_HEIGHT] {
         };
 
         let is_ground = layer.bool_prop("is_ground");
-        let is_solid  = layer.bool_prop("is_solid");
+        let is_solid = layer.bool_prop("is_solid");
 
         for (y, row) in map.iter_mut().enumerate() {
             for (x, tile) in row.iter_mut().enumerate() {

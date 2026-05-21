@@ -22,13 +22,13 @@ pub struct MinigameOutcome {
 }
 
 pub struct PlaceholderMinigame {
-        pub title: &'static str,
-        timer: f32,
+    pub title: &'static str,
+    timer: f32,
 }
 
 impl PlaceholderMinigame {
     pub fn new(title: &'static str) -> Self {
-        Self {title, timer:  0.0}
+        Self { title, timer: 0.0 }
     }
 }
 
@@ -54,5 +54,5 @@ impl Minigame for PlaceholderMinigame {
         let _ = (x, y);
     }
 
-    fn on_resize(&mut self, _w: f32, _h: f32) { }
+    fn on_resize(&mut self, _w: f32, _h: f32) {}
 }

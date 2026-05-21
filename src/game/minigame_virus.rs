@@ -30,8 +30,8 @@ const VIRUS_SPACING_X: f32 = 26.0;
 const VIRUS_SPACING_Y: f32 = 22.0;
 const GRID_TOP: f32 = 24.0;
 const GRID_LEFT: f32 = 20.0;
-const VIRUS_MOVE_SPEED: f32 = 40.0;  // horizontal speed
-const VIRUS_DROP: f32 = 12.0;         // how far they drop when hitting an edge
+const VIRUS_MOVE_SPEED: f32 = 40.0; // horizontal speed
+const VIRUS_DROP: f32 = 12.0; // how far they drop when hitting an edge
 
 // Game timer
 const TIME_LIMIT: f32 = 60.0;
@@ -58,9 +58,9 @@ pub struct VirusMinigame {
 
     // Virus grid
     viruses: Vec<Virus>,
-    grid_dx: f32,          // current horizontal direction (+1 or -1)
-    grid_offset_x: f32,    // accumulated horizontal movement
-    grid_offset_y: f32,    // accumulated vertical drop
+    grid_dx: f32,       // current horizontal direction (+1 or -1)
+    grid_offset_x: f32, // accumulated horizontal movement
+    grid_offset_y: f32, // accumulated vertical drop
 
     // State
     timer: f32,
@@ -84,7 +84,7 @@ impl VirusMinigame {
             for col in 0..COLS {
                 viruses.push(Virus {
                     x: GRID_LEFT + col as f32 * VIRUS_SPACING_X,
-                    y: GRID_TOP  + row as f32 * VIRUS_SPACING_Y,
+                    y: GRID_TOP + row as f32 * VIRUS_SPACING_Y,
                     alive: true,
                 });
             }
@@ -110,21 +110,24 @@ impl VirusMinigame {
     }
 
     fn rightmost_x(&self) -> f32 {
-        self.viruses.iter()
+        self.viruses
+            .iter()
             .filter(|v| v.alive)
             .map(|v| v.x + self.grid_offset_x + VIRUS_W)
             .fold(f32::NEG_INFINITY, f32::max)
     }
 
     fn leftmost_x(&self) -> f32 {
-        self.viruses.iter()
+        self.viruses
+            .iter()
             .filter(|v| v.alive)
             .map(|v| v.x + self.grid_offset_x)
             .fold(f32::INFINITY, f32::min)
     }
 
     fn lowest_y(&self) -> f32 {
-        self.viruses.iter()
+        self.viruses
+            .iter()
             .filter(|v| v.alive)
             .map(|v| v.y + self.grid_offset_y + VIRUS_H)
             .fold(f32::NEG_INFINITY, f32::max)
@@ -162,9 +165,13 @@ impl VirusMinigame {
 
         // Bullet vs virus collision
         for bullet in &mut self.bullets {
-            if !bullet.active { continue; }
+            if !bullet.active {
+                continue;
+            }
             for virus in &mut self.viruses {
-                if !virus.alive { continue; }
+                if !virus.alive {
+                    continue;
+                }
                 let vx = virus.x + self.grid_offset_x;
                 let vy = virus.y + self.grid_offset_y;
                 if bullet.x < vx + VIRUS_W
@@ -205,7 +212,7 @@ impl Minigame for VirusMinigame {
             // Wait for Enter/Space on results
             if input.is_just_pressed(KeyCode::Enter) || input.is_just_pressed(KeyCode::Space) {
                 return match self.finished {
-                    MinigameFinish::Won  => MinigameResult::Won { score: self.score },
+                    MinigameFinish::Won => MinigameResult::Won { score: self.score },
                     MinigameFinish::Lost => MinigameResult::Lost,
                     MinigameFinish::Running => unreachable!(),
                 };
@@ -241,7 +248,9 @@ impl Minigame for VirusMinigame {
 
         // Viruses
         for (i, virus) in self.viruses.iter().enumerate() {
-            if !virus.alive { continue; }
+            if !virus.alive {
+                continue;
+            }
             let vx = cam_x + virus.x + self.grid_offset_x;
             let vy = cam_y + virus.y + self.grid_offset_y;
             let key = format!("virus_{}", i);
@@ -252,9 +261,12 @@ impl Minigame for VirusMinigame {
         for (i, bullet) in self.bullets.iter().enumerate() {
             let key = format!("bullet_{}", i);
             renderer.draw_sprite_keyed(
-                &key, "debug_red",
-                cam_x + bullet.x, cam_y + bullet.y,
-                BULLET_W, BULLET_H,
+                &key,
+                "debug_red",
+                cam_x + bullet.x,
+                cam_y + bullet.y,
+                BULLET_W,
+                BULLET_H,
             );
         }
 
@@ -263,7 +275,8 @@ impl Minigame for VirusMinigame {
             "white_bloodcell",
             cam_x + self.player_x,
             cam_y + PLAYER_Y,
-            TILE, TILE,
+            TILE,
+            TILE,
         );
 
         // HUD: timer and score
@@ -271,13 +284,23 @@ impl Minigame for VirusMinigame {
         let score_text = format!("SCORE {}", self.score);
         let timer_text = format!("TIME {}", time_left);
 
-        self.font.draw_keyed(renderer, &score_text, cam_x + 4.0, cam_y + 4.0, 0.6, "hud_score");
+        self.font.draw_keyed(
+            renderer,
+            &score_text,
+            cam_x + 4.0,
+            cam_y + 4.0,
+            0.6,
+            "hud_score",
+        );
 
         let timer_w = self.font.measure(&timer_text, 0.6);
         self.font.draw_keyed(
-            renderer, &timer_text,
-            cam_x + VIEW_W - timer_w - 4.0, cam_y + 4.0,
-            0.6, "hud_timer",
+            renderer,
+            &timer_text,
+            cam_x + VIEW_W - timer_w - 4.0,
+            cam_y + 4.0,
+            0.6,
+            "hud_timer",
         );
 
         // Win / lose overlay
@@ -285,16 +308,63 @@ impl Minigame for VirusMinigame {
         let cy = cam_y + VIEW_H / 2.0;
         match self.finished {
             MinigameFinish::Won => {
-                renderer.draw_sprite("ui_panel", cam_x + VIEW_W * 0.2, cy - 20.0, VIEW_W * 0.6, 40.0);
-                self.font.draw_keyed(renderer, "YOU WIN", cx - self.font.measure("YOU WIN", 1.0) / 2.0, cy - 14.0, 1.0, "result_title");
+                renderer.draw_sprite(
+                    "ui_panel",
+                    cam_x + VIEW_W * 0.2,
+                    cy - 20.0,
+                    VIEW_W * 0.6,
+                    40.0,
+                );
+                self.font.draw_keyed(
+                    renderer,
+                    "YOU WIN",
+                    cx - self.font.measure("YOU WIN", 1.0) / 2.0,
+                    cy - 14.0,
+                    1.0,
+                    "result_title",
+                );
                 let s = format!("SCORE {}", self.score);
-                self.font.draw_keyed(renderer, &s, cx - self.font.measure(&s, 0.6) / 2.0, cy + 2.0, 0.6, "result_score");
-                self.font.draw_keyed(renderer, "PRESS ENTER", cx - self.font.measure("PRESS ENTER", 0.5) / 2.0, cy + 14.0, 0.5, "result_hint");
+                self.font.draw_keyed(
+                    renderer,
+                    &s,
+                    cx - self.font.measure(&s, 0.6) / 2.0,
+                    cy + 2.0,
+                    0.6,
+                    "result_score",
+                );
+                self.font.draw_keyed(
+                    renderer,
+                    "PRESS ENTER",
+                    cx - self.font.measure("PRESS ENTER", 0.5) / 2.0,
+                    cy + 14.0,
+                    0.5,
+                    "result_hint",
+                );
             }
             MinigameFinish::Lost => {
-                renderer.draw_sprite("ui_panel", cam_x + VIEW_W * 0.2, cy - 20.0, VIEW_W * 0.6, 40.0);
-                self.font.draw_keyed(renderer, "YOU LOST", cx - self.font.measure("YOU LOST", 1.0) / 2.0, cy - 14.0, 1.0, "result_title");
-                self.font.draw_keyed(renderer, "PRESS ENTER", cx - self.font.measure("PRESS ENTER", 0.5) / 2.0, cy + 14.0, 0.5, "result_hint");
+                renderer.draw_sprite(
+                    "ui_panel",
+                    cam_x + VIEW_W * 0.2,
+                    cy - 20.0,
+                    VIEW_W * 0.6,
+                    40.0,
+                );
+                self.font.draw_keyed(
+                    renderer,
+                    "YOU LOST",
+                    cx - self.font.measure("YOU LOST", 1.0) / 2.0,
+                    cy - 14.0,
+                    1.0,
+                    "result_title",
+                );
+                self.font.draw_keyed(
+                    renderer,
+                    "PRESS ENTER",
+                    cx - self.font.measure("PRESS ENTER", 0.5) / 2.0,
+                    cy + 14.0,
+                    0.5,
+                    "result_hint",
+                );
             }
             MinigameFinish::Running => {}
         }
