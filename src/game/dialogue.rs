@@ -107,7 +107,7 @@ impl DialogueBox {
     }
 }
 
-fn draw_9slice(
+pub fn draw_9slice(
     renderer: &mut Renderer,
     texture: &str,
     x: f32,

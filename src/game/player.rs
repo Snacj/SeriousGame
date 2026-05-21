@@ -8,7 +8,7 @@ use crate::{
         input::Input,
         renderer::Renderer,
     },
-    game::{dialogue::DialogueData, game::TILE_SIZE, object::Object},
+    game::{dialogue::{DialogueData, draw_9slice}, game::TILE_SIZE, object::Object},
 };
 
 const ATLAS_TEXTURE: &str = "player";
@@ -88,13 +88,16 @@ impl Player {
             let prompt_x = self.x + TILE_SIZE / 2.0 - prompt_w / 2.0;
             let prompt_y = self.y - TILE_SIZE * 2.0;
             let indicator_key = format!("indicator_{}", order);
-            renderer.draw_sprite_ui_keyed(
-                &indicator_key,
-                "ui_panel",
-                prompt_x - 3.0,
-                prompt_y - 2.0,
+            draw_9slice(
+                renderer,
+                "interaction_background",
+                prompt_x - 4.0,
+                prompt_y - 6.0,
                 prompt_w + 3.0,
-                TILE_SIZE * scale + 4.0,
+                18.0,
+                24.0,
+                24.0,
+                8.0,
             );
             font.draw_ui(renderer, prompt, prompt_x, prompt_y, scale);
         }

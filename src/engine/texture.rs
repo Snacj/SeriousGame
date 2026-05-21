@@ -129,6 +129,13 @@ pub fn load_sprites(engine: &Engine, renderer: &mut Renderer) {
     renderer.load_texture(
         &engine.device,
         &engine.queue,
+        "interaction_background",
+        include_bytes!("../../assets/interaction_prompt_background.png"),
+    );
+
+    renderer.load_texture(
+        &engine.device,
+        &engine.queue,
         "virus_station",
         include_bytes!("../../assets/larger_virus.png"),
     );
@@ -143,8 +150,22 @@ pub fn load_sprites(engine: &Engine, renderer: &mut Renderer) {
     renderer.load_texture(
         &engine.device,
         &engine.queue,
+        "virus_death",
+        include_bytes!("../../assets/virus_death.png"),
+    );
+
+    renderer.load_texture(
+        &engine.device,
+        &engine.queue,
         "white_bloodcell",
         include_bytes!("../../assets/white_bloodcell.png"),
+    );
+
+    renderer.load_texture(
+        &engine.device,
+        &engine.queue,
+        "main_menu",
+        include_bytes!("../../assets/main_menu.png"),
     );
 
     renderer.create_solid_texture(&engine.device, &engine.queue, "debug_red", [255, 0, 0, 100]);

@@ -1,3 +1,4 @@
+use crate::engine::animation::Animation;
 use crate::engine::font::Font;
 use crate::engine::input::Input;
 use crate::engine::renderer::Renderer;
@@ -49,6 +50,8 @@ struct Virus {
     x: f32,
     y: f32,
     alive: bool,
+    dying: bool,
+    death_anim: Animation,
 }
 
 pub struct VirusMinigame {
@@ -83,6 +86,8 @@ impl VirusMinigame {
                     x: GRID_LEFT + col as f32 * VIRUS_SPACING_X,
                     y: GRID_TOP + row as f32 * VIRUS_SPACING_Y,
                     alive: true,
+                    dying: false,
+                    death_anim: Animation::new(4, 0.4, 0).one_shot(),
                 });
             }
         }
@@ -105,7 +110,7 @@ impl VirusMinigame {
     }
 
     fn alive_count(&self) -> usize {
-        self.viruses.iter().filter(|v| v.alive).count()
+        self.viruses.iter().filter(|v| v.alive && !v.dying).count()
     }
 
     fn rightmost_x(&self) -> f32 {
@@ -165,7 +170,7 @@ impl VirusMinigame {
         for bullet in &mut self.bullets {
             if !bullet.active { continue; }
             for virus in &mut self.viruses {
-                if !virus.alive { continue; }
+                if !virus.alive || virus.dying { continue; }
                 let vx = virus.x + self.grid_offset_x;
                 let vy = virus.y + self.grid_offset_y;
                 if bullet.x < vx + VIRUS_W
@@ -174,7 +179,8 @@ impl VirusMinigame {
                     && bullet.y + BULLET_H > vy
                 {
                     bullet.active = false;
-                    virus.alive = false;
+                    virus.dying = true;
+                    virus.death_anim.reset();
                     self.score += 10;
                 }
             }
@@ -184,6 +190,19 @@ impl VirusMinigame {
     }
 
     fn update_viruses(&mut self, dt: f32) {
+        // Step death and remove finished ones
+        for virus in &mut self.viruses {
+            if virus.dying {
+                virus.death_anim.step(dt);
+                if virus.death_anim.is_finished() {
+                    virus.alive = false;
+                    virus.dying = false;
+                }
+            }
+        }
+
+        if self.alive_count() == 0 { return; }
+
         self.grid_offset_x += self.grid_vx * dt;
 
         // Tighter bounds using MARGIN so viruses don't go off screen
@@ -241,7 +260,7 @@ impl Minigame for VirusMinigame {
         self.update_bullets(dt);
         self.update_viruses(dt);
 
-        if self.alive_count() == 0 {
+        if self.alive_count() == 0 && !self.viruses.iter().any(|v| v.dying) {
             self.finished = MinigameFinish::Won;
         }
         if self.timer >= TIME_LIMIT || self.lowest_y() >= PLAYER_Y {
@@ -261,10 +280,17 @@ impl Minigame for VirusMinigame {
 
         for (i, virus) in self.viruses.iter().enumerate() {
             if !virus.alive { continue; }
+
             let vx = cam_x + virus.x + self.grid_offset_x;
             let vy = cam_y + virus.y + self.grid_offset_y;
             let key = format!("virus_{}", i);
-            renderer.draw_sprite_keyed(&key, "virus", vx, vy, VIRUS_W, VIRUS_H);
+
+            if virus.dying {
+                let frame = virus.death_anim.current_frame();
+                renderer.draw_sprite_frame_keyed(&key, "virus_death", vx, vy, VIRUS_W, VIRUS_H, frame, 0, VIRUS_W, VIRUS_H, VIRUS_W * 4.0, VIRUS_H);
+            } else {
+                renderer.draw_sprite_keyed(&key, "virus", vx, vy, VIRUS_W, VIRUS_H);
+            }
         }
 
         for (i, bullet) in self.bullets.iter().enumerate() {

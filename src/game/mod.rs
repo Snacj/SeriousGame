@@ -105,7 +105,7 @@ impl GameState {
 
     pub fn update(&mut self, input: &Input, dt: f32) -> Option<(GameState, f32)> {
         match self {
-            GameState::MainMenu(menu) => menu.update(input).map(|s| (s, 0.0)),
+            GameState::MainMenu(menu) => menu.update(input, dt).map(|s| (s, 0.0)),
             GameState::Playing(game) => game.update(input, dt).map(|s| (s, 0.0)),
             GameState::Paused(game) => game.update_paused(input).map(|s| (s, 0.0)),
 
