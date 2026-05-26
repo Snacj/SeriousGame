@@ -21,7 +21,6 @@ mod game;
 use engine::engine::Engine;
 use engine::input::Input;
 use engine::renderer::Renderer;
-use game::GameState;
 
 use crate::game::GameContext;
 
@@ -107,7 +106,7 @@ impl ApplicationHandler<Initialized> for App {
                     let (sw, sh) = engine.screen_size();
                     renderer.resize(sw, sh);
 
-                    let state = GameState::init(&engine, &mut renderer);
+                    let state = GameContext::init(&engine, &mut renderer);
 
                     assert!(
                         proxy
