@@ -164,11 +164,33 @@ pub fn load_sprites(engine: &Engine, renderer: &mut Renderer) {
     renderer.load_texture(
         &engine.device,
         &engine.queue,
+        "circle_target",
+        include_bytes!("../../assets/circle_target.png"),
+    );
+
+    renderer.load_texture(
+        &engine.device,
+        &engine.queue,
+        "pin_head",
+        include_bytes!("../../assets/pin_head.png"),
+    );
+
+    renderer.load_texture(
+        &engine.device,
+        &engine.queue,
+        "vaccine_station",
+        include_bytes!("../../assets/vaccine_station.png"),
+    );
+
+    renderer.load_texture(
+        &engine.device,
+        &engine.queue,
         "main_menu",
         include_bytes!("../../assets/main_menu.png"),
     );
 
     renderer.create_solid_texture(&engine.device, &engine.queue, "debug_red", [255, 0, 0, 100]);
+    renderer.create_solid_texture(&engine.device, &engine.queue, "white", [255, 255, 255, 255]);
     renderer.create_solid_texture(&engine.device, &engine.queue, "health_green", [0, 200, 0, 100]);
     renderer.create_solid_texture(
         &engine.device,

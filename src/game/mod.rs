@@ -12,6 +12,7 @@ pub mod game;
 pub mod main_menu;
 pub mod minigame;
 pub mod minigame_virus;
+pub mod minigame_vaccine;
 pub mod object;
 pub mod player;
 pub mod tile;
@@ -329,7 +330,7 @@ fn make_minigame(trigger: MinigameTrigger) -> (Box<dyn Minigame>, &'static str, 
             "A balanced diet gives your body the fuel it needs.",
         ),
         MinigameTrigger::VaccineTiming => (
-            Box::new(PlaceholderMinigame::new("VACCINE TIMING")),
+            Box::new(minigame_vaccine::AaMinigame::new()),
             "VACCINES",
             "Vaccines train your immune system before infection.",
         ),

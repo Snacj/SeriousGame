@@ -439,6 +439,44 @@ impl Renderer {
         ]);
     }
 
+    pub fn draw_sprite_rotated_keyed(
+        &mut self,
+        batch_key: &str,
+        texture_name: &str,
+        cx: f32,
+        cy: f32,
+        w: f32,
+        h: f32,
+        angle: f32,
+    ) {
+        self.batch_texture_map
+            .insert(batch_key.to_string(), texture_name.to_string());
+
+        let hw = w / 2.0;
+        let hh = h / 2.0;
+        let cos = angle.cos();
+        let sin = angle.sin();
+
+        // Corners relative to center, then rotated and translated
+        let corners: [(f32, f32, f32, f32); 4] = [
+            (-hw, -hh, 0.0, 0.0),
+            ( hw, -hh, 1.0, 0.0),
+            ( hw,  hh, 1.0, 1.0),
+            (-hw,  hh, 0.0, 1.0),
+        ];
+
+        let mut verts = [Vertex { position: [0.0; 3], tex_coords: [0.0; 2] }; 4];
+        for (i, &(lx, ly, u, v)) in corners.iter().enumerate() {
+            verts[i] = Vertex {
+                position: [cx + lx * cos - ly * sin, cy + lx * sin + ly * cos, 0.0],
+                tex_coords: [u, v],
+            };
+        }
+
+        let batch = self.world_batches.entry(batch_key.to_string()).or_default();
+        batch.extend_from_slice(&verts);
+    }
+
     pub fn draw_sprite_frame_keyed(
         &mut self,
         batch_key: &str,

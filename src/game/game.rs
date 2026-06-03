@@ -46,6 +46,14 @@ impl MyGame {
             virus_collision_box,
         ));
         objects.push(Object::new(
+                10.0 * TILE_SIZE,
+                4.0 * TILE_SIZE,
+                96.0,
+                128.0,
+                ObjectType::VaccineStation,
+                house_collision_box,
+        ));
+        objects.push(Object::new(
             16.0 * TILE_SIZE,
             16.0 * TILE_SIZE,
             96.0,

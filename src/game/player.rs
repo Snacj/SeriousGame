@@ -141,7 +141,7 @@ impl Player {
             let dy = self.y - cy;
             let dist = (dx * dx + dy * dy).sqrt();
 
-            if dist < nearest_dist {
+            if dist < nearest_dist && !obj.completed {
                 nearest_dist = dist;
                 nearest = Some(obj);
             }
