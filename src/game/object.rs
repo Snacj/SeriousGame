@@ -5,53 +5,40 @@ use crate::game::dialogue::{DialogueData, MinigameTrigger};
 fn interaction_for(object_type: ObjectType) -> Option<DialogueData> {
     match object_type {
         ObjectType::House => Some(DialogueData::new(
-            "HOUSE",
-            &[
-                "This is a weird house",
-                "I wonder whats inside",
-                "Hmmm the door is locked",
-            ],
+            "HAUS",
+            "Ein seltsames Haus. Ob hier jemand wohnt? Die Tuer ist leider verschlossen.",
         )),
         ObjectType::RedBloodCell => Some(DialogueData::new(
-            "RED BLOOD CELL",
-            &[
-                "I carry oxygen through",
-                "your bloodstream",
-                "Without me cells die",
-            ],
+            "ROTES BLUTKOERPERCHEN",
+            "Ich transportiere Sauerstoff durch deinen Blutkreislauf. Ohne mich koennen die Zellen nicht ueberleben.",
         )),
         ObjectType::VirusStation => Some(
             DialogueData::new(
-                "VIRUS DETECTED",
-                &[
-                    "A virus is attacking",
-                    "Help the immune system",
-                    "fight it off",
-                ],
+                "ALARM IMMUNSYSTEM",
+                "Alarm! Krankheitserreger haben den Koerper angegriffen. Zum Glueck besitzt unser Koerper eine eigene Verteidigung: das Immunsystem. Ein wichtiger Teil davon sind die weissen Blutkoerperchen. Sie erkennen Eindringlinge wie Viren und helfen, sie unschaedlich zu machen. Steuere die weissen Blutkoerperchen und besiege die Viren!",
             )
             .with_minigame(MinigameTrigger::CatchVirus),
         ),
         ObjectType::FoodStation => Some(
             DialogueData::new(
-                "NUTRITION LAB",
-                &[
-                    "What you eat matters",
-                    "Sort healthy food from",
-                    "junk to heal the body",
-                ],
+                "ERNAEHRUNG",
+                "Was du isst, ist wichtig. Sortiere gesunde Lebensmittel aus, um dem Koerper zu helfen.",
             )
             .with_minigame(MinigameTrigger::SortFood),
         ),
         ObjectType::VaccineStation => Some(
             DialogueData::new(
-                "VACCINE STATION",
-                &[
-                    "Vaccines train your",
-                    "immune system to fight",
-                    "disease before it hits",
-                ],
+                "IMPFSTATION",
+                "Du hast das Krankenhaus erreicht! Aerzte und Wissenschaftler haben einen Weg gefunden, den Koerper auf gefaehrliche Krankheiten vorzubereiten: Impfungen. Eine Impfung zeigt dem Immunsystem einen ungefaehrlichen Teil eines Krankheitserregers. So lernt der Koerper, wie er sich spaeter verteidigen muss. Hilf, die Impfstoffe richtig zu platzieren!",
             )
             .with_minigame(MinigameTrigger::VaccineTiming),
+        ),
+        ObjectType::ColorGate => Some(
+            DialogueData::new(
+                "ANTIKOERPER",
+                "Die Impfung war erfolgreich! Jetzt hat das Immunsystem spezielle Antikoerper gebildet. Diese sind wie kleine Helfer, die Krankheitserreger erkennen und bekaempfen koennen. Doch zuerst muessen die Antikoerper durch die Blutgefaesse zu ihrem Einsatzort gelangen. Achte darauf, nur durch Hindernisse in der passenden Farbe zu fliegen!",
+            )
+            .with_minigame(MinigameTrigger::ColorSwitch),
         ),
     }
 }
@@ -139,6 +126,7 @@ pub enum ObjectType {
     VirusStation,
     FoodStation,
     VaccineStation,
+    ColorGate,
 }
 
 impl ObjectType {
@@ -149,6 +137,7 @@ impl ObjectType {
             ObjectType::VirusStation => "virus_station",
             ObjectType::FoodStation => "food_station",
             ObjectType::VaccineStation => "vaccine_station",
+            ObjectType::ColorGate => "color_gate",
         }
     }
 }

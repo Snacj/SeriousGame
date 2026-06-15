@@ -1,0 +1,57 @@
+Serious Games
+
+Einleitungstext - Spiel:
+Eines Tages besucht du mit deiner Schulklasse das neue Forschungslabor von Professor Nova. Dort entwickelt er eine unglaubliche Erfindung: einen Schrumpfstrahl, mit dem Menschen winzig klein werden können.
+Doch plötzlich passiert etwas Unerwartetes! Ein Patient wird schwer krank, und niemand weiß genau, wie sich die Krankheit in seinem Körper ausbreitet. Um zu helfen, erhältst du eine besondere Mission: Du wirst auf Mikroskopgröße geschrumpft und direkt in den Körper des Patienten geschickt.
+Dort erwarten dich spannende Missionen. Du lernst, wie das Immunsystem Krankheitserreger bekämpft, warum Impfungen wichtig sind und wie der Körper sich selbst schützt. Mit jeder erfolgreichen Aufgabe hilfst du dem Patienten, wieder gesund zu werden.
+Bist du bereit für die wichtigste Mission deines Lebens?
+Dann schrumpfe dich und beginne dein Abenteuer in Body Quest!
+
+
+Progressbar:
+Gesundheitsanzeige
+Diese Leiste zeigt deinen Fortschritt auf deiner Mission und den Gesundheitszustand des Patienten.
+Jede erfolgreich abgeschlossene Aufgabe hilft dem Körper dabei, die Krankheit zu bekämpfen. Je weiter die Leiste gefüllt ist, desto besser geht es dem Patienten. Schaffe alle Missionen, um den Körper vollständig zu heilen!
+
+
+Einleitungstext - Minigame 1:
+Alarm! Krankheitserreger haben den Körper angegriffen.
+Zum Glück besitzt unser Körper eine eigene Verteidigung: das Immunsystem. Ein wichtiger Teil davon sind die weißen Blutkörperchen. Sie erkennen Eindringlinge wie Viren und helfen dabei, sie unschädlich zu machen.
+In diesem Bereich des Körpers haben sich besonders viele Krankheitserreger angesammelt. Steuere die weißen Blutkörperchen und hilf dabei, die Viren zu besiegen!
+
+
+Endtext - Minigame 1:
+Gut gemacht!
+Dank deiner Hilfe konnten viele Krankheitserreger beseitigt werden. Genau wie im Spiel bekämpfen weiße Blutkörperchen jeden Tag echte Viren und Bakterien in unserem Körper.
+Damit das Immunsystem stark bleibt, sind ausreichend Schlaf, Bewegung und eine ausgewogene Ernährung wichtig. Doch manche Krankheitserreger sind besonders hartnäckig. Deshalb braucht der Körper manchmal zusätzliche Unterstützung.
+
+
+Einleitungstext - Minigame 2:
+Du hast das Krankenhaus erreicht!
+Ärzte und Wissenschaftler haben einen Weg gefunden, den Körper auf gefährliche Krankheiten vorzubereiten: Impfungen. Eine Impfung zeigt dem Immunsystem einen ungefährlichen Teil eines Krankheitserregers. So kann der Körper lernen, wie er sich später verteidigen muss.
+Hilf dabei, die Impfstoffe richtig zu platzieren. Jede erfolgreiche Spritze hilft dem Immunsystem, sich auf zukünftige Angriffe vorzubereiten.
+
+
+Endtext - Minigame 2:
+Ausgezeichnet!
+Durch Impfungen lernt das Immunsystem Krankheitserreger frühzeitig kennen. Dadurch kann es bei einer echten Infektion oft viel schneller reagieren.
+Wenn viele Menschen geimpft sind, entsteht sogenannte Herdenimmunität. Dadurch werden auch Menschen geschützt, die sich nicht impfen lassen können, zum Beispiel wegen bestimmter Krankheiten. Impfstoffe werden gründlich getestet und gehören zu den sichersten Methoden, schwere Krankheiten zu verhindern. Bei einer akuten Erkrankung mit Fieber wird eine Impfung jedoch manchmal verschoben, bis man wieder gesund ist.
+
+
+Einleitungstext - Minigame 3:
+Die Impfung war erfolgreich!
+Jetzt hat das Immunsystem spezielle Antikörper gebildet. Diese sind wie kleine Helfer, die Krankheitserreger erkennen und bekämpfen können.
+Doch zuerst müssen die Antikörper durch die Blutgefäße zu ihrem Einsatzort gelangen. Achte darauf, nur durch Hindernisse in der passenden Farbe zu fliegen. So können die Antikörper ihr Ziel sicher erreichen.
+
+
+Endtext - Minigame 3:
+Geschafft!
+Die Antikörper haben ihr Ziel erreicht und unterstützen nun die Abwehr des Körpers. Wenn derselbe Krankheitserreger später erneut auftaucht, kann das Immunsystem ihn viel schneller erkennen und bekämpfen.
+Dieses Gedächtnis des Immunsystems ist einer der wichtigsten Gründe, warum Impfungen so gut funktionieren.
+
+
+Outro - Spiel:
+Mission erfolgreich!
+Dank deiner Hilfe konnten die Krankheitserreger besiegt werden. Die weißen Blutkörperchen haben gekämpft, die Impfung hat das Immunsystem vorbereitet und die Antikörper haben ihren Einsatzort erreicht.
+Der Patient ist nun wieder gesund und sein Körper kann normal arbeiten. Du hast gelernt, wie unser Immunsystem funktioniert, warum Impfungen wichtig sind und wie unser Körper jeden Tag gegen Krankheiten kämpft.
+Herzlichen Glückwunsch, Body Quest wurde erfolgreich abgeschlossen!

@@ -3,7 +3,7 @@ use crate::engine::{font::Font, renderer::Renderer};
 #[derive(Clone)]
 pub struct DialogueData {
     pub title: &'static str,
-    pub lines: &'static [&'static str],
+    pub body: &'static str,
     pub minigame: Option<MinigameTrigger>,
 }
 
@@ -18,10 +18,10 @@ pub enum MinigameTrigger {
 }
 
 impl DialogueData {
-    pub const fn new(title: &'static str, lines: &'static [&'static str]) -> Self {
+    pub const fn new(title: &'static str, body: &'static str) -> Self {
         Self {
             title,
-            lines,
+            body,
             minigame: None,
         }
     }
@@ -54,7 +54,9 @@ impl DialogueBox {
         let padding = 6.0;
         let box_w = cam_w - padding * 2.0;
         let line_h = 8.0; // space between lines at scale 0.6
-        let num_lines = data.lines.len() as f32;
+        let body_scale = 0.6;
+        let lines = self.font.wrap(data.body, body_scale, box_w - padding * 2.0);
+        let num_lines = lines.len() as f32;
         let title_h = 22.0;
         let box_h = title_h              // title area
             + (num_lines * line_h)    // body lines
@@ -81,21 +83,21 @@ impl DialogueBox {
             .draw_ui(renderer, data.title, box_x + padding, box_y + padding, 0.8);
 
         // Body lines
-        for (i, line) in data.lines.iter().enumerate() {
+        for (i, line) in lines.iter().enumerate() {
             self.font.draw_ui(
                 renderer,
                 line,
                 box_x + padding,
                 box_y + title_h + i as f32 * line_h,
-                0.6,
+                body_scale,
             );
         }
 
         // Hint
         let hint = if data.minigame.is_some() {
-            "ENTER TO START MINIGAME"
+            "ENTER ZUM STARTEN"
         } else {
-            "ENTER TO CLOSE"
+            "ENTER ZUM SCHLIESSEN"
         };
         let hint_w = self.font.measure(hint, 0.5);
         self.font.draw_ui(

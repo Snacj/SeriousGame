@@ -310,8 +310,8 @@ impl Minigame for VirusMinigame {
         );
 
         let time_left = (TIME_LIMIT - self.timer).max(0.0) as u32;
-        let score_text = format!("SCORE {}", self.score);
-        let timer_text = format!("TIME {}", time_left);
+        let score_text = format!("PUNKTE {}", self.score);
+        let timer_text = format!("ZEIT {}", time_left);
 
         self.font.draw_keyed(renderer, &score_text, cam_x + 4.0, cam_y + 4.0, 0.6, "hud_score");
 
@@ -324,20 +324,20 @@ impl Minigame for VirusMinigame {
         match self.finished {
             MinigameFinish::Won => {
                 renderer.draw_sprite("ui_panel", cam_x + VIEW_W * 0.2, cy - 20.0, VIEW_W * 0.6, 40.0);
-                self.font.draw_keyed(renderer, "YOU WIN",
-                    cx - self.font.measure("YOU WIN", 1.0) / 2.0, cy - 14.0, 1.0, "result_title");
-                let s = format!("SCORE {}", self.score);
+                self.font.draw_keyed(renderer, "GEWONNEN",
+                    cx - self.font.measure("GEWONNEN", 1.0) / 2.0, cy - 14.0, 1.0, "result_title");
+                let s = format!("PUNKTE {}", self.score);
                 self.font.draw_keyed(renderer, &s,
                     cx - self.font.measure(&s, 0.6) / 2.0, cy + 2.0, 0.6, "result_score");
-                self.font.draw_keyed(renderer, "PRESS ENTER",
-                    cx - self.font.measure("PRESS ENTER", 0.5) / 2.0, cy + 14.0, 0.5, "result_hint");
+                self.font.draw_keyed(renderer, "ENTER DRUECKEN",
+                    cx - self.font.measure("ENTER DRUECKEN", 0.5) / 2.0, cy + 14.0, 0.5, "result_hint");
             }
             MinigameFinish::Lost => {
                 renderer.draw_sprite("ui_panel", cam_x + VIEW_W * 0.2, cy - 20.0, VIEW_W * 0.6, 40.0);
-                self.font.draw_keyed(renderer, "YOU LOST",
-                    cx - self.font.measure("YOU LOST", 1.0) / 2.0, cy - 14.0, 1.0, "result_title");
-                self.font.draw_keyed(renderer, "PRESS ENTER",
-                    cx - self.font.measure("PRESS ENTER", 0.5) / 2.0, cy + 14.0, 0.5, "result_hint");
+                self.font.draw_keyed(renderer, "VERLOREN",
+                    cx - self.font.measure("VERLOREN", 1.0) / 2.0, cy - 14.0, 1.0, "result_title");
+                self.font.draw_keyed(renderer, "ENTER DRUECKEN",
+                    cx - self.font.measure("ENTER DRUECKEN", 0.5) / 2.0, cy + 14.0, 0.5, "result_hint");
             }
             MinigameFinish::Running => {}
         }

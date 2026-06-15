@@ -53,6 +53,15 @@ impl MyGame {
                 ObjectType::VaccineStation,
                 house_collision_box,
         ));
+        let gate_collision_box = CollisionBox::new(24.0, 24.0, 48.0, 48.0);
+        objects.push(Object::new(
+            20.0 * TILE_SIZE,
+            40.0 * TILE_SIZE,
+            96.0,
+            96.0,
+            ObjectType::ColorGate,
+            gate_collision_box,
+        ));
         // objects.push(Object::new(
         //     16.0 * TILE_SIZE,
         //     16.0 * TILE_SIZE,

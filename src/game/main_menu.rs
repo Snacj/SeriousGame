@@ -39,10 +39,9 @@ impl MainMenu {
         }
         self.blink_timer += dt;
         if input.is_just_pressed(KeyCode::Space) || input.is_just_pressed(KeyCode::Enter) {
-            return Some(GameState::Playing(MyGame::new(
-                self.screen_width,
-                self.screen_height,
-            )));
+            return Some(GameState::Intro {
+                game: MyGame::new(self.screen_width, self.screen_height),
+            });
         }
         None
     }
@@ -65,7 +64,7 @@ impl MainMenu {
 
         if self.show_text {
             self.font
-                .draw_centered(renderer, "PRESS SPACE TO START", cx, cy + 16.0, 0.8);
+                .draw_centered(renderer, "LEERTASTE ZUM STARTEN", cx, cy + 16.0, 0.8);
         }
     }
 

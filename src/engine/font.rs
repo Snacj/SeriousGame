@@ -133,6 +133,38 @@ impl Font {
         self.draw(renderer, text, cx - w / 2.0, y, scale);
     }
 
+    /// Draw text centered horizontally around `cx`, onto the UI layer (drawn on top).
+    pub fn draw_centered_ui(&self, renderer: &mut Renderer, text: &str, cx: f32, y: f32, scale: f32) {
+        let w = self.measure(text, scale);
+        self.draw_ui(renderer, text, cx - w / 2.0, y, scale);
+    }
+
+    /// Greedily word-wrap `text` so each line fits within `max_width` at `scale`.
+    pub fn wrap(&self, text: &str, scale: f32, max_width: f32) -> Vec<String> {
+        let mut lines: Vec<String> = Vec::new();
+        let mut current = String::new();
+
+        for word in text.split_whitespace() {
+            let candidate = if current.is_empty() {
+                word.to_string()
+            } else {
+                format!("{current} {word}")
+            };
+
+            if !current.is_empty() && self.measure(&candidate, scale) > max_width {
+                lines.push(current);
+                current = word.to_string();
+            } else {
+                current = candidate;
+            }
+        }
+
+        if !current.is_empty() {
+            lines.push(current);
+        }
+        lines
+    }
+
     /// Returns the total drawn width of a string in world units at the given scale.
     pub fn measure(&self, text: &str, scale: f32) -> f32 {
         if text.is_empty() {

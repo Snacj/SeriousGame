@@ -82,7 +82,9 @@ impl GameContext {
 
     pub fn render(&self, renderer: &mut Renderer) {
         self.state.render(renderer);
-        if !self.state.is_main_menu() && !matches!(self.state, GameState::Won) {
+        if !self.state.is_main_menu()
+            && !matches!(self.state, GameState::Won | GameState::Intro { .. })
+        {
             Self::render_health_bar(renderer, self.progress());
         }
     }
@@ -105,6 +107,13 @@ impl GameContext {
 
 pub enum GameState {
     MainMenu(MainMenu),
+
+    /// Intro / story screen shown after the menu, before gameplay starts.
+    /// Holds the (not-yet-active) overworld so it can be shown in the background.
+    Intro {
+        game: MyGame,
+    },
+
     Playing(MyGame),
     Paused(MyGame),
 
@@ -143,8 +152,18 @@ impl GameState {
     pub fn update(&mut self, input: &Input, dt: f32) -> Option<(GameState, Progress)> {
         match self {
             GameState::MainMenu(menu) => menu.update(input, dt).map(|s| (s, Progress::None)),
+
+            GameState::Intro { game } => {
+                if input.is_just_pressed(KeyCode::Space) || input.is_just_pressed(KeyCode::Enter) {
+                    let game = std::mem::replace(game, MyGame::new(0.0, 0.0));
+                    return Some((GameState::Playing(game), Progress::None));
+                }
+                None
+            }
+
             GameState::Playing(game) => {
-                // Debug: launch the color-switch minigame directly (no trigger object yet).
+                // Debug shortcut: launch the color-switch minigame directly
+                // (also reachable in-world via the ColorGate object).
                 if input.is_just_pressed(KeyCode::F10) {
                     let trigger = MinigameTrigger::ColorSwitch;
                     let (minigame, title, fact) = make_minigame(trigger);
@@ -259,6 +278,31 @@ impl GameState {
     pub fn render(&self, renderer: &mut Renderer) {
         match self {
             GameState::MainMenu(menu) => menu.render(renderer),
+
+            GameState::Intro { game } => {
+                // Show the overworld behind the intro text.
+                game.render(renderer, false);
+                Self::render_overlay(renderer, "transparent_gray");
+
+                let cam_x = renderer.camera.position.x;
+                let cam_y = renderer.camera.position.y;
+                let cam_w = renderer.camera.logical_width;
+                let cam_h = renderer.camera.logical_height;
+                let cx = cam_x + cam_w / 2.0;
+
+                let font = crate::engine::font::Font::new("font");
+                let body = "Eines Tages besuchst du mit deiner Schulklasse das Forschungslabor \
+                    von Professor Nova. Dort entwickelt er eine unglaubliche Erfindung: einen \
+                    Schrumpfstrahl, mit dem Menschen winzig klein werden koennen. Ploetzlich wird \
+                    ein Patient schwer krank, und niemand weiss, wie sich die Krankheit ausbreitet. \
+                    Du wirst auf Mikroskopgroesse geschrumpft und in seinen Koerper geschickt. \
+                    Bist du bereit fuer die wichtigste Mission deines Lebens?";
+
+                font.draw_centered_ui(renderer, "BODY QUEST", cx, cam_y + 16.0, 1.0);
+                Self::draw_paragraph_ui(renderer, &font, body, cx, cam_y + 40.0, 0.45, cam_w - 24.0, 8.0);
+                font.draw_centered_ui(renderer, "LEERTASTE ZUM STARTEN", cx, cam_y + cam_h - 16.0, 0.6);
+            }
+
             GameState::Playing(game) => game.render(renderer, true),
             GameState::Paused(game) => {
                 game.render(renderer, false);
@@ -266,18 +310,17 @@ impl GameState {
 
                 let cam_x = renderer.camera.position.x;
                 let cam_y = renderer.camera.position.y;
-                let cx = cam_x + renderer.camera.logical_width / 2.0;
-                let cy = cam_y + renderer.camera.logical_height / 2.0;
+                let cam_w = renderer.camera.logical_width;
+                let cx = cam_x + cam_w / 2.0;
 
                 let font = crate::engine::font::Font::new("font");
-                let text = "PAUSE";
-                font.draw_ui(
-                    renderer,
-                    text,
-                    cx - font.measure(text, 1.0) / 2.0,
-                    cy - 4.0,
-                    1.0,
-                );
+                font.draw_centered_ui(renderer, "PAUSE", cx, cam_y + 28.0, 1.0);
+                font.draw_centered_ui(renderer, "GESUNDHEITSANZEIGE", cx, cam_y + 60.0, 0.6);
+
+                let body = "Diese Leiste zeigt deinen Fortschritt und den Gesundheitszustand \
+                    des Patienten. Jede abgeschlossene Aufgabe hilft dem Koerper, die Krankheit \
+                    zu bekaempfen. Schaffe alle Missionen, um den Koerper vollstaendig zu heilen!";
+                Self::draw_paragraph_ui(renderer, &font, body, cx, cam_y + 76.0, 0.45, cam_w - 40.0, 8.0);
             }
             GameState::Dialogue {
                 game,
@@ -303,30 +346,24 @@ impl GameState {
 
                 let font = crate::engine::font::Font::new("font");
 
-                let title = if outcome.won { "YOU WIN" } else { "YOU LOST" };
-                font.draw_ui(
-                    renderer,
-                    title,
-                    cx - font.measure(title, 1.0) / 2.0,
-                    cy - 20.0,
-                    1.0,
-                );
-
-                font.draw_ui(
-                    renderer,
-                    outcome.fact,
-                    cx - font.measure(outcome.fact, 0.5) / 2.0,
-                    cy,
-                    0.5,
-                );
-
-                font.draw_ui(
-                    renderer,
-                    "PRESS ENTER TO CONTINUE",
-                    cx - font.measure("PRESS ENTER TO CONTINUE", 0.5) / 2.0,
-                    cy + 16.0,
-                    0.5,
-                );
+                if outcome.won {
+                    // Topic heading + the educational closing text for this minigame.
+                    font.draw_centered_ui(renderer, outcome.title, cx, cam_y + 14.0, 0.9);
+                    Self::draw_paragraph_ui(
+                        renderer,
+                        &font,
+                        outcome.fact,
+                        cx,
+                        cam_y + 40.0,
+                        0.45,
+                        cam_w - 24.0,
+                        8.0,
+                    );
+                    font.draw_centered_ui(renderer, "ENTER UM WEITERZUSPIELEN", cx, cam_y + cam_h - 14.0, 0.6);
+                } else {
+                    font.draw_centered_ui(renderer, "VERLOREN", cx, cy - 14.0, 1.0);
+                    font.draw_centered_ui(renderer, "ENTER ZUM ERNEUT VERSUCHEN", cx, cy + 8.0, 0.5);
+                }
             }
             GameState::Won => {
                 let cam_x = renderer.camera.position.x;
@@ -334,28 +371,19 @@ impl GameState {
                 let cam_w = renderer.camera.logical_width;
                 let cam_h = renderer.camera.logical_height;
                 let cx = cam_x + cam_w / 2.0;
-                let cy = cam_y + cam_h / 2.0;
 
                 renderer.draw_sprite_ui("transparent_gray", cam_x, cam_y, cam_w, cam_h);
                 let font = crate::engine::font::Font::new("font");
-                let text = "BODY HEALED";
-                font.draw_ui(
-                    renderer,
-                    text,
-                    cx - font.measure(text, 1.0) / 2.0,
-                    cy - 20.0,
-                    1.0,
-                );
-                let text = "THE PATIENT RECOVERED";
-                font.draw_ui(renderer, text, cx - font.measure(text, 0.5) / 2.0, cy, 0.5);
-                let text = "We hope you enjoyed the Game!";
-                font.draw_ui(
-                    renderer,
-                    text,
-                    cx - font.measure(text, 0.5) / 2.0,
-                    cy + 16.0,
-                    0.5,
-                );
+
+                let body = "Dank deiner Hilfe konnten die Krankheitserreger besiegt werden. \
+                    Die weissen Blutkoerperchen haben gekaempft, die Impfung hat das Immunsystem \
+                    vorbereitet und die Antikoerper haben ihren Einsatzort erreicht. Der Patient \
+                    ist nun wieder gesund. Du hast gelernt, wie unser Immunsystem funktioniert und \
+                    warum Impfungen wichtig sind. Herzlichen Glueckwunsch, Body Quest ist geschafft!";
+
+                font.draw_centered_ui(renderer, "MISSION ERFOLGREICH", cx, cam_y + 16.0, 0.9);
+                Self::draw_paragraph_ui(renderer, &font, body, cx, cam_y + 42.0, 0.45, cam_w - 24.0, 8.0);
+                font.draw_centered_ui(renderer, "ENTER ZUM MENU", cx, cam_y + cam_h - 14.0, 0.6);
             }
         }
     }
@@ -363,6 +391,7 @@ impl GameState {
     pub fn on_resize(&mut self, w: f32, h: f32) {
         match self {
             GameState::MainMenu(menu) => menu.on_resize(w, h),
+            GameState::Intro { game } => game.on_resize(w, h),
             GameState::Playing(game) => game.on_resize(w, h),
             GameState::Paused(game) => game.on_resize(w, h),
             GameState::Dialogue { game, .. } => game.on_resize(w, h),
@@ -372,6 +401,38 @@ impl GameState {
             }
             GameState::Results { game, .. } => game.on_resize(w, h),
             GameState::Won => {}
+        }
+    }
+
+    /// Word-wrap `text` and draw it as centered lines on the world layer.
+    fn draw_paragraph(
+        renderer: &mut Renderer,
+        font: &crate::engine::font::Font,
+        text: &str,
+        cx: f32,
+        top_y: f32,
+        scale: f32,
+        max_width: f32,
+        line_h: f32,
+    ) {
+        for (i, line) in font.wrap(text, scale, max_width).iter().enumerate() {
+            font.draw_centered(renderer, line, cx, top_y + i as f32 * line_h, scale);
+        }
+    }
+
+    /// Word-wrap `text` and draw it as centered lines on the UI layer (on top).
+    fn draw_paragraph_ui(
+        renderer: &mut Renderer,
+        font: &crate::engine::font::Font,
+        text: &str,
+        cx: f32,
+        top_y: f32,
+        scale: f32,
+        max_width: f32,
+        line_h: f32,
+    ) {
+        for (i, line) in font.wrap(text, scale, max_width).iter().enumerate() {
+            font.draw_centered_ui(renderer, line, cx, top_y + i as f32 * line_h, scale);
         }
     }
 
@@ -394,28 +455,28 @@ fn make_minigame(trigger: MinigameTrigger) -> (Box<dyn Minigame>, &'static str, 
     match trigger {
         MinigameTrigger::CatchVirus => (
             Box::new(minigame_virus::VirusMinigame::new()),
-            "IMMUNE SYSTEM",
-            "White blood cells identify and destroy viruses.",
+            "IMMUNSYSTEM",
+            "Gut gemacht! Dank deiner Hilfe konnten viele Krankheitserreger beseitigt werden. Genau wie im Spiel bekaempfen weisse Blutkoerperchen jeden Tag echte Viren und Bakterien in unserem Koerper. Damit das Immunsystem stark bleibt, sind genug Schlaf, Bewegung und eine ausgewogene Ernaehrung wichtig.",
         ),
         MinigameTrigger::SortFood => (
             Box::new(PlaceholderMinigame::new("SORT THE FOOD")),
-            "NUTRITION",
-            "A balanced diet gives your body the fuel it needs.",
+            "ERNAEHRUNG",
+            "Eine ausgewogene Ernaehrung gibt deinem Koerper die Energie, die er braucht.",
         ),
         MinigameTrigger::VaccineTiming => (
             Box::new(minigame_vaccine::AaMinigame::new()),
-            "VACCINES",
-            "Vaccines train your immune system before infection.",
+            "IMPFUNGEN",
+            "Ausgezeichnet! Durch Impfungen lernt das Immunsystem Krankheitserreger frueh kennen und kann bei einer echten Infektion viel schneller reagieren. Wenn viele Menschen geimpft sind, entsteht Herdenimmunitaet, die auch andere schuetzt. Impfstoffe werden gruendlich getestet und gehoeren zu den sichersten Methoden gegen schwere Krankheiten.",
         ),
         MinigameTrigger::DeliverOxygen => (
             Box::new(PlaceholderMinigame::new("DELIVER OXYGEN")),
-            "RESPIRATORY SYSTEM",
-            "Red blood cells carry oxygen to every cell in the body.",
+            "ATMUNG",
+            "Rote Blutkoerperchen transportieren Sauerstoff zu jeder Zelle des Koerpers.",
         ),
         MinigameTrigger::ColorSwitch => (
             Box::new(minigame_color_switch::ColorSwitchMinigame::new()),
-            "CELL MEMBRANES",
-            "Cells use color-coded channels to control what passes through.",
+            "ANTIKOERPER",
+            "Geschafft! Die Antikoerper haben ihr Ziel erreicht und unterstuetzen nun die Abwehr des Koerpers. Taucht derselbe Krankheitserreger spaeter erneut auf, erkennt ihn das Immunsystem viel schneller. Dieses Gedaechtnis des Immunsystems ist einer der wichtigsten Gruende, warum Impfungen so gut funktionieren.",
         ),
     }
 }

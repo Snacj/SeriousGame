@@ -292,8 +292,8 @@ impl ColorSwitchMinigame {
 
     fn render_hud(&self, renderer: &mut Renderer, cam_x: f32, cam_y: f32) {
         let time_left = (TIME_LIMIT - self.timer).max(0.0) as u32;
-        let score_text = format!("SCORE {}", self.score);
-        let timer_text = format!("TIME {}", time_left);
+        let score_text = format!("PUNKTE {}", self.score);
+        let timer_text = format!("ZEIT {}", time_left);
         let passed = self.obstacles.iter().filter(|o| o.passed).count();
         let progress_text = format!("{}/{}", passed, NUM_OBSTACLES);
 
@@ -372,8 +372,8 @@ impl Minigame for ColorSwitchMinigame {
         if !self.started {
             self.font.draw_keyed(
                 renderer,
-                "PRESS SPACE TO START",
-                cx - self.font.measure("PRESS SPACE TO START", 0.6) / 2.0,
+                "LEERTASTE ZUM STARTEN",
+                cx - self.font.measure("LEERTASTE ZUM STARTEN", 0.6) / 2.0,
                 cy,
                 0.6,
                 "start_hint",
@@ -391,13 +391,13 @@ impl Minigame for ColorSwitchMinigame {
                 );
                 self.font.draw_keyed(
                     renderer,
-                    "YOU WIN",
-                    cx - self.font.measure("YOU WIN", 1.0) / 2.0,
+                    "GEWONNEN",
+                    cx - self.font.measure("GEWONNEN", 1.0) / 2.0,
                     cy - 14.0,
                     1.0,
                     "result_title",
                 );
-                let s = format!("SCORE {}", self.score);
+                let s = format!("PUNKTE {}", self.score);
                 self.font.draw_keyed(
                     renderer,
                     &s,
@@ -408,8 +408,8 @@ impl Minigame for ColorSwitchMinigame {
                 );
                 self.font.draw_keyed(
                     renderer,
-                    "PRESS ENTER",
-                    cx - self.font.measure("PRESS ENTER", 0.5) / 2.0,
+                    "ENTER DRUECKEN",
+                    cx - self.font.measure("ENTER DRUECKEN", 0.5) / 2.0,
                     cy + 14.0,
                     0.5,
                     "result_hint",
@@ -425,16 +425,16 @@ impl Minigame for ColorSwitchMinigame {
                 );
                 self.font.draw_keyed(
                     renderer,
-                    "YOU LOST",
-                    cx - self.font.measure("YOU LOST", 1.0) / 2.0,
+                    "VERLOREN",
+                    cx - self.font.measure("VERLOREN", 1.0) / 2.0,
                     cy - 14.0,
                     1.0,
                     "result_title",
                 );
                 self.font.draw_keyed(
                     renderer,
-                    "PRESS ENTER",
-                    cx - self.font.measure("PRESS ENTER", 0.5) / 2.0,
+                    "ENTER DRUECKEN",
+                    cx - self.font.measure("ENTER DRUECKEN", 0.5) / 2.0,
                     cy + 14.0,
                     0.5,
                     "result_hint",

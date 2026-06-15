@@ -137,21 +137,21 @@ pub fn load_sprites(engine: &Engine, renderer: &mut Renderer) {
         &engine.device,
         &engine.queue,
         "virus_station",
-        include_bytes!("../../assets/larger_virus.png"),
+        include_bytes!("../../assets/larger_virus2.png"),
     );
 
     renderer.load_texture(
         &engine.device,
         &engine.queue,
         "virus",
-        include_bytes!("../../assets/virus.png"),
+        include_bytes!("../../assets/virus2.png"),
     );
 
     renderer.load_texture(
         &engine.device,
         &engine.queue,
         "virus_death",
-        include_bytes!("../../assets/virus_death.png"),
+        include_bytes!("../../assets/virus_death2.png"),
     );
 
     renderer.load_texture(
@@ -185,6 +185,13 @@ pub fn load_sprites(engine: &Engine, renderer: &mut Renderer) {
     renderer.load_texture(
         &engine.device,
         &engine.queue,
+        "color_gate",
+        include_bytes!("../../assets/color_gate.png"),
+    );
+
+    renderer.load_texture(
+        &engine.device,
+        &engine.queue,
         "main_menu",
         include_bytes!("../../assets/main_menu.png"),
     );
@@ -192,11 +199,12 @@ pub fn load_sprites(engine: &Engine, renderer: &mut Renderer) {
     renderer.create_solid_texture(&engine.device, &engine.queue, "debug_red", [255, 0, 0, 100]);
     renderer.create_solid_texture(&engine.device, &engine.queue, "white", [255, 255, 255, 255]);
     renderer.create_solid_texture(&engine.device, &engine.queue, "health_green", [0, 200, 0, 100]);
+    // Dark, mostly-opaque overlay used behind text screens for readable contrast.
     renderer.create_solid_texture(
         &engine.device,
         &engine.queue,
         "transparent_gray",
-        [128, 128, 128, 100],
+        [10, 12, 24, 215],
     );
     renderer.create_solid_texture(&engine.device, &engine.queue, "color_red", [220, 50, 50, 255]);
     renderer.create_solid_texture(&engine.device, &engine.queue, "color_blue", [50, 100, 220, 255]);
