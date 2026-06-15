@@ -53,8 +53,8 @@ impl DialogueBox {
         // Box dimensions in world units
         let padding = 6.0;
         let box_w = cam_w - padding * 2.0;
-        let line_h = 8.0; // space between lines at scale 0.6
         let body_scale = 0.6;
+        let line_h = self.font.line_height(body_scale);
         let lines = self.font.wrap(data.body, body_scale, box_w - padding * 2.0);
         let num_lines = lines.len() as f32;
         let title_h = 22.0;

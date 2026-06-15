@@ -299,7 +299,7 @@ impl GameState {
                     Bist du bereit fuer die wichtigste Mission deines Lebens?";
 
                 font.draw_centered_ui(renderer, "BODY QUEST", cx, cam_y + 16.0, 1.0);
-                Self::draw_paragraph_ui(renderer, &font, body, cx, cam_y + 40.0, 0.45, cam_w - 24.0, 8.0);
+                font.draw_paragraph_ui(renderer, body, cx, cam_y + 40.0, 0.45, cam_w - 24.0);
                 font.draw_centered_ui(renderer, "LEERTASTE ZUM STARTEN", cx, cam_y + cam_h - 16.0, 0.6);
             }
 
@@ -320,7 +320,7 @@ impl GameState {
                 let body = "Diese Leiste zeigt deinen Fortschritt und den Gesundheitszustand \
                     des Patienten. Jede abgeschlossene Aufgabe hilft dem Koerper, die Krankheit \
                     zu bekaempfen. Schaffe alle Missionen, um den Koerper vollstaendig zu heilen!";
-                Self::draw_paragraph_ui(renderer, &font, body, cx, cam_y + 76.0, 0.45, cam_w - 40.0, 8.0);
+                font.draw_paragraph_ui(renderer, body, cx, cam_y + 76.0, 0.45, cam_w - 40.0);
             }
             GameState::Dialogue {
                 game,
@@ -349,16 +349,7 @@ impl GameState {
                 if outcome.won {
                     // Topic heading + the educational closing text for this minigame.
                     font.draw_centered_ui(renderer, outcome.title, cx, cam_y + 14.0, 0.9);
-                    Self::draw_paragraph_ui(
-                        renderer,
-                        &font,
-                        outcome.fact,
-                        cx,
-                        cam_y + 40.0,
-                        0.45,
-                        cam_w - 24.0,
-                        8.0,
-                    );
+                    font.draw_paragraph_ui(renderer, outcome.fact, cx, cam_y + 40.0, 0.45, cam_w - 24.0);
                     font.draw_centered_ui(renderer, "ENTER UM WEITERZUSPIELEN", cx, cam_y + cam_h - 14.0, 0.6);
                 } else {
                     font.draw_centered_ui(renderer, "VERLOREN", cx, cy - 14.0, 1.0);
@@ -382,7 +373,7 @@ impl GameState {
                     warum Impfungen wichtig sind. Herzlichen Glueckwunsch, Body Quest ist geschafft!";
 
                 font.draw_centered_ui(renderer, "MISSION ERFOLGREICH", cx, cam_y + 16.0, 0.9);
-                Self::draw_paragraph_ui(renderer, &font, body, cx, cam_y + 42.0, 0.45, cam_w - 24.0, 8.0);
+                font.draw_paragraph_ui(renderer, body, cx, cam_y + 42.0, 0.45, cam_w - 24.0);
                 font.draw_centered_ui(renderer, "ENTER ZUM MENU", cx, cam_y + cam_h - 14.0, 0.6);
             }
         }
@@ -401,38 +392,6 @@ impl GameState {
             }
             GameState::Results { game, .. } => game.on_resize(w, h),
             GameState::Won => {}
-        }
-    }
-
-    /// Word-wrap `text` and draw it as centered lines on the world layer.
-    fn draw_paragraph(
-        renderer: &mut Renderer,
-        font: &crate::engine::font::Font,
-        text: &str,
-        cx: f32,
-        top_y: f32,
-        scale: f32,
-        max_width: f32,
-        line_h: f32,
-    ) {
-        for (i, line) in font.wrap(text, scale, max_width).iter().enumerate() {
-            font.draw_centered(renderer, line, cx, top_y + i as f32 * line_h, scale);
-        }
-    }
-
-    /// Word-wrap `text` and draw it as centered lines on the UI layer (on top).
-    fn draw_paragraph_ui(
-        renderer: &mut Renderer,
-        font: &crate::engine::font::Font,
-        text: &str,
-        cx: f32,
-        top_y: f32,
-        scale: f32,
-        max_width: f32,
-        line_h: f32,
-    ) {
-        for (i, line) in font.wrap(text, scale, max_width).iter().enumerate() {
-            font.draw_centered_ui(renderer, line, cx, top_y + i as f32 * line_h, scale);
         }
     }
 

@@ -365,6 +365,7 @@ impl Renderer {
         ]);
     }
 
+    #[allow(dead_code)]
     pub fn draw_sprite_frame(
         &mut self,
         texture_name: &str,
@@ -669,6 +670,7 @@ impl Renderer {
         ]);
     }
 
+    #[allow(dead_code)]
     pub fn draw_sprite_frame_ui_keyed(
         &mut self,
         batch_key: &str,
@@ -709,6 +711,95 @@ impl Renderer {
                 tex_coords: [u0, v1],
             },
         ]);
+    }
+
+    // --- Source-rectangle sampling (arbitrary pixel sub-rect of a texture) ---
+    // Unlike the `*_frame` helpers, the sampled origin and size are independent,
+    // so a glyph can be sampled from the top-left of a larger cell.
+
+    pub fn draw_sprite_sub(
+        &mut self,
+        texture_name: &str,
+        x: f32,
+        y: f32,
+        draw_w: f32,
+        draw_h: f32,
+        src_x: f32,
+        src_y: f32,
+        src_w: f32,
+        src_h: f32,
+        texture_w: f32,
+        texture_h: f32,
+    ) {
+        let (u0, v0, u1, v1) = sub_uv(src_x, src_y, src_w, src_h, texture_w, texture_h);
+        let batch = self
+            .world_batches
+            .entry(texture_name.to_string())
+            .or_default();
+        push_quad(batch, x, y, draw_w, draw_h, u0, v0, u1, v1);
+    }
+
+    pub fn draw_sprite_sub_ui(
+        &mut self,
+        texture_name: &str,
+        x: f32,
+        y: f32,
+        draw_w: f32,
+        draw_h: f32,
+        src_x: f32,
+        src_y: f32,
+        src_w: f32,
+        src_h: f32,
+        texture_w: f32,
+        texture_h: f32,
+    ) {
+        let (u0, v0, u1, v1) = sub_uv(src_x, src_y, src_w, src_h, texture_w, texture_h);
+        let batch = self.ui_batches.entry(texture_name.to_string()).or_default();
+        push_quad(batch, x, y, draw_w, draw_h, u0, v0, u1, v1);
+    }
+
+    pub fn draw_sprite_sub_keyed(
+        &mut self,
+        batch_key: &str,
+        texture_name: &str,
+        x: f32,
+        y: f32,
+        draw_w: f32,
+        draw_h: f32,
+        src_x: f32,
+        src_y: f32,
+        src_w: f32,
+        src_h: f32,
+        texture_w: f32,
+        texture_h: f32,
+    ) {
+        self.batch_texture_map
+            .insert(batch_key.to_string(), texture_name.to_string());
+        let (u0, v0, u1, v1) = sub_uv(src_x, src_y, src_w, src_h, texture_w, texture_h);
+        let batch = self.world_batches.entry(batch_key.to_string()).or_default();
+        push_quad(batch, x, y, draw_w, draw_h, u0, v0, u1, v1);
+    }
+
+    pub fn draw_sprite_sub_ui_keyed(
+        &mut self,
+        batch_key: &str,
+        texture_name: &str,
+        x: f32,
+        y: f32,
+        draw_w: f32,
+        draw_h: f32,
+        src_x: f32,
+        src_y: f32,
+        src_w: f32,
+        src_h: f32,
+        texture_w: f32,
+        texture_h: f32,
+    ) {
+        self.batch_texture_map
+            .insert(batch_key.to_string(), texture_name.to_string());
+        let (u0, v0, u1, v1) = sub_uv(src_x, src_y, src_w, src_h, texture_w, texture_h);
+        let batch = self.ui_batches.entry(batch_key.to_string()).or_default();
+        push_quad(batch, x, y, draw_w, draw_h, u0, v0, u1, v1);
     }
 
     pub fn resize(&mut self, screen_width: f32, screen_height: f32) {
@@ -863,4 +954,24 @@ impl Renderer {
             render_pass.draw_indexed(0..(num_sprites * 6), 0, 0..1);
         }
     }
+}
+
+/// Normalized UV rect for a pixel sub-rectangle of a texture.
+fn sub_uv(src_x: f32, src_y: f32, src_w: f32, src_h: f32, tex_w: f32, tex_h: f32) -> (f32, f32, f32, f32) {
+    (
+        src_x / tex_w,
+        src_y / tex_h,
+        (src_x + src_w) / tex_w,
+        (src_y + src_h) / tex_h,
+    )
+}
+
+/// Append a textured quad (two triangles, 4 vertices) to a batch.
+fn push_quad(batch: &mut Vec<Vertex>, x: f32, y: f32, w: f32, h: f32, u0: f32, v0: f32, u1: f32, v1: f32) {
+    batch.extend_from_slice(&[
+        Vertex { position: [x, y, 0.0], tex_coords: [u0, v0] },
+        Vertex { position: [x + w, y, 0.0], tex_coords: [u1, v0] },
+        Vertex { position: [x + w, y + h, 0.0], tex_coords: [u1, v1] },
+        Vertex { position: [x, y + h, 0.0], tex_coords: [u0, v1] },
+    ]);
 }
