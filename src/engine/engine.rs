@@ -105,21 +105,6 @@ impl Engine {
 
     fn physical_size_from_window(window: &Window) -> (u32, u32) {
         let size = window.inner_size();
-
-        #[cfg(target_arch = "wasm32")]
-        {
-            let dpr = web_sys::window()
-                .map(|w| w.device_pixel_ratio())
-                .unwrap_or(1.0);
-            (
-                ((size.width as f64) * dpr).round() as u32,
-                ((size.height as f64) * dpr).round() as u32,
-            )
-        }
-
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            (size.width, size.height)
-        }
+        (size.width, size.height)
     }
 }
