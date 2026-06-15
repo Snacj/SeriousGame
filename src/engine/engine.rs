@@ -1,7 +1,6 @@
 use std::sync::Arc;
 use winit::window::Window;
 
-/// Owns the raw GPU state.
 pub struct Engine {
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
@@ -61,16 +60,20 @@ impl Engine {
             .find(|f| f.is_srgb())
             .unwrap_or(surface_caps.formats[0]);
 
+        let (initial_width, initial_height) = Self::physical_size_from_window(&window);
+
         let config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
             format: surface_format,
-            width: size.width,
-            height: size.height,
+            width: initial_width.max(1),
+            height: initial_height.max(1),
             present_mode: surface_caps.present_modes[0],
             alpha_mode: surface_caps.alpha_modes[0],
             view_formats: vec![],
             desired_maximum_frame_latency: 2,
         };
+
+        surface.configure(&device, &config);
 
         Ok(Self {
             device,
@@ -78,20 +81,45 @@ impl Engine {
             surface,
             config,
             window,
-            is_surface_configured: false,
+            is_surface_configured: true,
         })
     }
 
     pub fn resize(&mut self, width: u32, height: u32) {
-        if width > 0 && height > 0 {
-            self.config.width = width;
-            self.config.height = height;
-            self.surface.configure(&self.device, &self.config);
-            self.is_surface_configured = true;
-        }
+        let w = width.max(1);
+        let h = height.max(1);
+        self.config.width = w;
+        self.config.height = h;
+        self.surface.configure(&self.device, &self.config);
+        self.is_surface_configured = true;
+    }
+
+    pub fn resize_auto(&mut self) {
+        let (w, h) = Self::physical_size_from_window(&self.window);
+        self.resize(w, h);
     }
 
     pub fn screen_size(&self) -> (f32, f32) {
         (self.config.width as f32, self.config.height as f32)
+    }
+
+    fn physical_size_from_window(window: &Window) -> (u32, u32) {
+        let size = window.inner_size();
+
+        #[cfg(target_arch = "wasm32")]
+        {
+            let dpr = web_sys::window()
+                .map(|w| w.device_pixel_ratio())
+                .unwrap_or(1.0);
+            (
+                ((size.width as f64) * dpr).round() as u32,
+                ((size.height as f64) * dpr).round() as u32,
+            )
+        }
+
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            (size.width, size.height)
+        }
     }
 }
