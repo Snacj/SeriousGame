@@ -11,44 +11,79 @@ pub mod dialogue;
 pub mod game;
 pub mod main_menu;
 pub mod minigame;
-pub mod minigame_virus;
+pub mod minigame_color_switch;
 pub mod minigame_vaccine;
+pub mod minigame_virus;
 pub mod object;
 pub mod player;
 pub mod tile;
 
+/// The minigames that must all be won to complete the game.
+const REQUIRED_MINIGAMES: [MinigameTrigger; 3] = [
+    MinigameTrigger::CatchVirus,
+    MinigameTrigger::VaccineTiming,
+    MinigameTrigger::ColorSwitch,
+];
+
+/// Communicated back from `GameState::update` so the context can track progress.
+pub enum Progress {
+    None,
+    MinigameWon(MinigameTrigger),
+}
+
 pub struct GameContext {
     pub state: GameState,
-    pub health: f32,
+    /// Distinct required minigames the player has beaten this run.
+    won: Vec<MinigameTrigger>,
 }
 
 impl GameContext {
     pub fn init(engine: &Engine, renderer: &mut Renderer) -> Self {
         Self {
             state: GameState::init(engine, renderer),
-            health: 0.3,
+            won: Vec::new(),
         }
     }
 
     pub fn update(&mut self, input: &Input, dt: f32) {
-        if let Some((next, delta)) = self.state.update(input, dt) {
+        if let Some((next, progress)) = self.state.update(input, dt) {
             self.state = next;
-            self.health = (self.health + delta).clamp(0.0, 1.0);
+
+            if let Progress::MinigameWon(trigger) = progress {
+                if REQUIRED_MINIGAMES.contains(&trigger) && !self.won.contains(&trigger) {
+                    self.won.push(trigger);
+                }
+            }
+
+            // Returning to the menu starts a fresh run.
+            if matches!(self.state, GameState::MainMenu(_)) {
+                self.won.clear();
+            }
         }
 
+        // Debug: instantly complete every required minigame.
         if input.is_just_pressed(KeyCode::F12) {
-            self.health = 1.0;
+            self.won = REQUIRED_MINIGAMES.to_vec();
         }
 
-        if self.health >= 1.0 && !matches!(self.state, GameState::Won) {
+        if self.all_won() && !matches!(self.state, GameState::Won) {
             self.state = GameState::Won;
         }
+    }
+
+    fn all_won(&self) -> bool {
+        REQUIRED_MINIGAMES.iter().all(|t| self.won.contains(t))
+    }
+
+    /// Fraction of required minigames completed, for the progress bar.
+    fn progress(&self) -> f32 {
+        self.won.len() as f32 / REQUIRED_MINIGAMES.len() as f32
     }
 
     pub fn render(&self, renderer: &mut Renderer) {
         self.state.render(renderer);
         if !self.state.is_main_menu() && !matches!(self.state, GameState::Won) {
-            Self::render_health_bar(renderer, self.health);
+            Self::render_health_bar(renderer, self.progress());
         }
     }
 
@@ -83,6 +118,7 @@ pub enum GameState {
     Minigame {
         game: MyGame,
         minigame: Box<dyn Minigame>,
+        trigger: MinigameTrigger,
         outcome_title: &'static str,
         outcome_fact: &'static str,
         object_index: Option<usize>,
@@ -104,11 +140,30 @@ impl GameState {
         GameState::MainMenu(MainMenu::new(sw, sh))
     }
 
-    pub fn update(&mut self, input: &Input, dt: f32) -> Option<(GameState, f32)> {
+    pub fn update(&mut self, input: &Input, dt: f32) -> Option<(GameState, Progress)> {
         match self {
-            GameState::MainMenu(menu) => menu.update(input, dt).map(|s| (s, 0.0)),
-            GameState::Playing(game) => game.update(input, dt).map(|s| (s, 0.0)),
-            GameState::Paused(game) => game.update_paused(input).map(|s| (s, 0.0)),
+            GameState::MainMenu(menu) => menu.update(input, dt).map(|s| (s, Progress::None)),
+            GameState::Playing(game) => {
+                // Debug: launch the color-switch minigame directly (no trigger object yet).
+                if input.is_just_pressed(KeyCode::F10) {
+                    let trigger = MinigameTrigger::ColorSwitch;
+                    let (minigame, title, fact) = make_minigame(trigger);
+                    let game = std::mem::replace(game, MyGame::new(0.0, 0.0));
+                    return Some((
+                        GameState::Minigame {
+                            game,
+                            minigame,
+                            trigger,
+                            outcome_title: title,
+                            outcome_fact: fact,
+                            object_index: None,
+                        },
+                        Progress::None,
+                    ));
+                }
+                game.update(input, dt).map(|s| (s, Progress::None))
+            }
+            GameState::Paused(game) => game.update_paused(input).map(|s| (s, Progress::None)),
 
             GameState::Dialogue { game, data, .. } => {
                 if input.is_just_pressed(KeyCode::Enter) {
@@ -119,14 +174,13 @@ impl GameState {
                             obj.interaction
                                 .as_ref()
                                 .and_then(|i| i.minigame)
-                                .map(|t| {
-                                    std::mem::discriminant(&t) == std::mem::discriminant(&trigger)
-                                })
+                                .map(|t| t == trigger)
                                 .unwrap_or(false)
                         });
                         GameState::Minigame {
                             game,
                             minigame,
+                            trigger,
                             outcome_title: title,
                             outcome_fact: fact,
                             object_index,
@@ -135,7 +189,7 @@ impl GameState {
                         let game = std::mem::replace(game, MyGame::new(0.0, 0.0));
                         GameState::Playing(game)
                     };
-                    return Some((next, 0.0));
+                    return Some((next, Progress::None));
                 }
                 None
             }
@@ -143,6 +197,7 @@ impl GameState {
             GameState::Minigame {
                 game,
                 minigame,
+                trigger,
                 outcome_title,
                 outcome_fact,
                 object_index,
@@ -155,9 +210,10 @@ impl GameState {
                         title: outcome_title,
                         fact: outcome_fact,
                         object_index: *object_index,
+                        trigger: *trigger,
                     };
                     let game = std::mem::replace(game, MyGame::new(0.0, 0.0));
-                    Some((GameState::Results { game, outcome }, 0.0))
+                    Some((GameState::Results { game, outcome }, Progress::None))
                 }
                 MinigameResult::Lost => {
                     let outcome = MinigameOutcome {
@@ -166,32 +222,34 @@ impl GameState {
                         title: outcome_title,
                         fact: outcome_fact,
                         object_index: *object_index,
+                        trigger: *trigger,
                     };
                     let game = std::mem::replace(game, MyGame::new(0.0, 0.0));
-                    Some((GameState::Results { game, outcome }, 0.0))
+                    Some((GameState::Results { game, outcome }, Progress::None))
                 }
             },
 
             GameState::Results { game, outcome } => {
                 if input.is_just_pressed(KeyCode::Enter) || input.is_just_pressed(KeyCode::Space) {
-                    let delta = if outcome.won { 0.2 } else { -0.1 };
-
-                    if outcome.won {
+                    let progress = if outcome.won {
                         if let Some(idx) = outcome.object_index {
                             game.objects[idx].completed = true;
                             game.rebuild_collision_map();
                         }
-                    }
+                        Progress::MinigameWon(outcome.trigger)
+                    } else {
+                        Progress::None
+                    };
 
                     let game = std::mem::replace(game, MyGame::new(0.0, 0.0));
-                    return Some((GameState::Playing(game), delta));
+                    return Some((GameState::Playing(game), progress));
                 }
                 None
             }
 
             GameState::Won => {
                 if input.is_just_pressed(KeyCode::Enter) || input.is_just_pressed(KeyCode::Space) {
-                    return Some((GameState::MainMenu(MainMenu::new(0.0, 0.0)), 0.0));
+                    return Some((GameState::MainMenu(MainMenu::new(0.0, 0.0)), Progress::None));
                 }
                 None
             }
@@ -205,6 +263,21 @@ impl GameState {
             GameState::Paused(game) => {
                 game.render(renderer, false);
                 Self::render_overlay(renderer, "transparent_gray");
+
+                let cam_x = renderer.camera.position.x;
+                let cam_y = renderer.camera.position.y;
+                let cx = cam_x + renderer.camera.logical_width / 2.0;
+                let cy = cam_y + renderer.camera.logical_height / 2.0;
+
+                let font = crate::engine::font::Font::new("font");
+                let text = "PAUSE";
+                font.draw_ui(
+                    renderer,
+                    text,
+                    cx - font.measure(text, 1.0) / 2.0,
+                    cy - 4.0,
+                    1.0,
+                );
             }
             GameState::Dialogue {
                 game,
@@ -338,6 +411,11 @@ fn make_minigame(trigger: MinigameTrigger) -> (Box<dyn Minigame>, &'static str, 
             Box::new(PlaceholderMinigame::new("DELIVER OXYGEN")),
             "RESPIRATORY SYSTEM",
             "Red blood cells carry oxygen to every cell in the body.",
+        ),
+        MinigameTrigger::ColorSwitch => (
+            Box::new(minigame_color_switch::ColorSwitchMinigame::new()),
+            "CELL MEMBRANES",
+            "Cells use color-coded channels to control what passes through.",
         ),
     }
 }

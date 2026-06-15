@@ -31,7 +31,7 @@ const BASE_ROTATION_SPEED: f32 = 1.5;
 const SPEED_INCREMENT: f32 = 0.20;
 
 const PINS_PER_LEVEL: usize = 6;
-const MAX_LEVEL: u32 = 4;
+const MAX_LEVEL: u32 = 3;
 const PRE_PLACED_PER_LEVEL: usize = 2;
 
 const TIME_LIMIT: f32 = 90.0;

@@ -198,5 +198,9 @@ pub fn load_sprites(engine: &Engine, renderer: &mut Renderer) {
         "transparent_gray",
         [128, 128, 128, 100],
     );
+    renderer.create_solid_texture(&engine.device, &engine.queue, "color_red", [220, 50, 50, 255]);
+    renderer.create_solid_texture(&engine.device, &engine.queue, "color_blue", [50, 100, 220, 255]);
+    renderer.create_solid_texture(&engine.device, &engine.queue, "color_yellow", [220, 200, 50, 255]);
+    renderer.create_solid_texture(&engine.device, &engine.queue, "color_green", [50, 200, 50, 255]);
     renderer.create_solid_texture(&engine.device, &engine.queue, "ui_panel", [20, 20, 40, 210]);
 }

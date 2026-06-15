@@ -8,12 +8,13 @@ pub struct DialogueData {
 }
 
 #[allow(unused)]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MinigameTrigger {
     CatchVirus,
     SortFood,
     VaccineTiming,
     DeliverOxygen,
+    ColorSwitch,
 }
 
 impl DialogueData {

@@ -1,4 +1,5 @@
 use crate::engine::{input::Input, renderer::Renderer};
+use crate::game::dialogue::MinigameTrigger;
 
 pub enum MinigameResult {
     Running,
@@ -19,6 +20,7 @@ pub struct MinigameOutcome {
     pub title: &'static str,
     pub fact: &'static str,
     pub object_index: Option<usize>,
+    pub trigger: MinigameTrigger,
 }
 
 #[allow(unused)]

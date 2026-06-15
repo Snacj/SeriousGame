@@ -190,6 +190,7 @@ impl ApplicationHandler<Initialized> for App {
                     },
                 ..
             } => {
+                #[cfg(not(target_arch = "wasm32"))]
                 if code == KeyCode::Escape && key_state.is_pressed() {
                     event_loop.exit();
                     return;
