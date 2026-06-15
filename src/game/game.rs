@@ -46,29 +46,29 @@ impl MyGame {
             virus_collision_box,
         ));
         objects.push(Object::new(
-                10.0 * TILE_SIZE,
-                4.0 * TILE_SIZE,
+                38.0 * TILE_SIZE,
+                31.0 * TILE_SIZE,
                 96.0,
                 128.0,
                 ObjectType::VaccineStation,
                 house_collision_box,
         ));
-        objects.push(Object::new(
-            16.0 * TILE_SIZE,
-            16.0 * TILE_SIZE,
-            96.0,
-            128.0,
-            ObjectType::House,
-            house_collision_box,
-        ));
-        objects.push(Object::new(
-            24.0 * TILE_SIZE,
-            24.0 * TILE_SIZE,
-            96.0,
-            128.0,
-            ObjectType::House,
-            house_collision_box,
-        ));
+        // objects.push(Object::new(
+        //     16.0 * TILE_SIZE,
+        //     16.0 * TILE_SIZE,
+        //     96.0,
+        //     128.0,
+        //     ObjectType::House,
+        //     house_collision_box,
+        // ));
+        // objects.push(Object::new(
+        //     24.0 * TILE_SIZE,
+        //     24.0 * TILE_SIZE,
+        //     96.0,
+        //     128.0,
+        //     ObjectType::House,
+        //     house_collision_box,
+        // ));
 
         let map = map::load_map(include_bytes!("../../maps/testMap.json"));
         let mut collision_world = CollisionWorld::new();
