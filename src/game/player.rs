@@ -93,7 +93,7 @@ impl Player {
                 "interaction_background",
                 prompt_x - 4.0,
                 prompt_y - 6.0,
-                prompt_w + 3.0,
+                prompt_w + 8.0,
                 18.0,
                 24.0,
                 24.0,
