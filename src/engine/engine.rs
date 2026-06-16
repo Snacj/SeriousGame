@@ -61,6 +61,8 @@ impl Engine {
             .unwrap_or(surface_caps.formats[0]);
 
         let (initial_width, initial_height) = Self::physical_size_from_window(&window);
+        let (initial_width, initial_height) =
+            Self::clamp_to_max_dim(initial_width, initial_height, device.limits().max_texture_dimension_2d);
 
         let config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
@@ -86,8 +88,13 @@ impl Engine {
     }
 
     pub fn resize(&mut self, width: u32, height: u32) {
-        let w = width.max(1);
-        let h = height.max(1);
+        // The WebGL2 backend caps the surface at `max_texture_dimension_2d`
+        // (2048 with downlevel defaults). Monitors wider/taller than that would
+        // otherwise produce an invalid render target -> black/green screen.
+        // Scale both axes by the same factor so the aspect ratio is preserved;
+        // CSS upscales the canvas back to fill the window.
+        let max_dim = self.device.limits().max_texture_dimension_2d;
+        let (w, h) = Self::clamp_to_max_dim(width, height, max_dim);
         self.config.width = w;
         self.config.height = h;
         self.surface.configure(&self.device, &self.config);
@@ -106,5 +113,21 @@ impl Engine {
     fn physical_size_from_window(window: &Window) -> (u32, u32) {
         let size = window.inner_size();
         (size.width, size.height)
+    }
+
+    /// Scale (width, height) down uniformly so neither axis exceeds `max_dim`,
+    /// preserving aspect ratio. Used to keep the WebGL2 surface within the
+    /// backend's `max_texture_dimension_2d` limit.
+    fn clamp_to_max_dim(width: u32, height: u32, max_dim: u32) -> (u32, u32) {
+        let w = width.max(1);
+        let h = height.max(1);
+        if w <= max_dim && h <= max_dim {
+            return (w, h);
+        }
+        let scale = (max_dim as f32 / w as f32).min(max_dim as f32 / h as f32);
+        (
+            ((w as f32 * scale).floor() as u32).clamp(1, max_dim),
+            ((h as f32 * scale).floor() as u32).clamp(1, max_dim),
+        )
     }
 }
