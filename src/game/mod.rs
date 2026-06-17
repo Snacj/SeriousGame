@@ -297,9 +297,8 @@ impl GameState {
                     ein Patient schwer krank, und niemand weiss, wie sich die Krankheit ausbreitet. \
                     Du wirst auf Mikroskopgroesse geschrumpft und in seinen Koerper geschickt. \
                     Bist du bereit fuer die wichtigste Mission deines Lebens? \
-                    \
                     Laufe in der Spielwelt herum und finde 3 wichtige Orte \
-                    um die Mission erfolgreich abzuschließen";
+                    um die Mission erfolgreich abzuschliessen.";
 
                 font.draw_centered_ui(renderer, "BODY QUEST", cx, cam_y + 16.0, 1.0);
                 font.draw_paragraph_ui(renderer, body, cx, cam_y + 40.0, 0.45, cam_w - 24.0);
